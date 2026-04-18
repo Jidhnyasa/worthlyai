@@ -44,12 +44,29 @@ async function buildAll() {
   ];
   const externals = allDeps.filter((dep) => !allowlist.includes(dep));
 
+  // Main server entry (listen-based, for Node/Perplexity hosting)
   await esbuild({
     entryPoints: ["server/index.ts"],
     platform: "node",
     bundle: true,
     format: "cjs",
     outfile: "dist/index.cjs",
+    define: {
+      "process.env.NODE_ENV": '"production"',
+    },
+    minify: true,
+    external: externals,
+    logLevel: "info",
+  });
+
+  // Vercel serverless entry (exports Express app, no listen)
+  console.log("building vercel bundle...");
+  await esbuild({
+    entryPoints: ["server/app.ts"],
+    platform: "node",
+    bundle: true,
+    format: "cjs",
+    outfile: "dist/app.cjs",
     define: {
       "process.env.NODE_ENV": '"production"',
     },
