@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Worthly Design System ── warm amber + deep warm dark ── */
+
+@layer base {
+  :root {
+    /* Surfaces — warm cream */
+    --background: 38 25% 97%;
+    --foreground: 24 20% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 24 20% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 20% 12%;
+
+    /* Primary — warm amber */
+    --primary: 32 95% 54%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary — stone */
+    --secondary: 38 12% 93%;
+    --secondary-foreground: 24 20% 20%;
+
+    /* Muted */
+    --muted: 38 12% 93%;
+    --muted-foreground: 38 8% 48%;
+
+    /* Accent */
+    --accent: 32 80% 90%;
+    --accent-foreground: 32 95% 30%;
+
+    /* Semantic */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 95% 54%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Borders + inputs */
+    --border: 38 10% 88%;
+    --input: 38 10% 88%;
+    --ring: 32 95% 54%;
+
+    /* Charts */
+    --chart-1: 32 95% 54%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 217 91% 60%;
+    --chart-4: 270 70% 60%;
+    --chart-5: 0 72% 51%;
+
+    --radius: 0.625rem;
+
+    /* Hero dark bg */
+    --hero-bg: 20 25% 8%;
+  }
+
+  .dark {
+    --background: 20 18% 8%;
+    --foreground: 38 10% 88%;
+    --card: 20 16% 11%;
+    --card-foreground: 38 10% 88%;
+    --popover: 20 16% 11%;
+    --popover-foreground: 38 10% 88%;
+    --primary: 32 95% 54%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 20 12% 16%;
+    --secondary-foreground: 38 8% 75%;
+    --muted: 20 12% 16%;
+    --muted-foreground: 38 6% 50%;
+    --accent: 32 40% 18%;
+    --accent-foreground: 32 95% 65%;
+    --destructive: 0 63% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 8% 20%;
+    --input: 20 8% 20%;
+    --ring: 32 95% 54%;
+    --chart-1: 32 95% 60%;
+    --chart-2: 142 55% 55%;
+    --chart-3: 217 80% 65%;
+    --chart-4: 270 60% 65%;
+    --chart-5: 0 63% 55%;
+    --hero-bg: 20 25% 8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+}
+
+/* ── Custom utilities ── */
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(12px);
+  }
+  .glass-light {
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(12px);
+  }
+  .hero-dark {
+    background: linear-gradient(135deg, hsl(20, 25%, 8%) 0%, hsl(25, 20%, 13%) 50%, hsl(20, 18%, 10%) 100%);
+  }
+  .amber-glow {
+    box-shadow: 0 0 0 1px hsl(32 95% 54% / 0.3), 0 4px 20px hsl(32 95% 54% / 0.15);
+  }
+  .score-bar {
+    height: 6px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.1);
+    overflow: hidden;
+  }
+  .score-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, hsl(32 95% 54%), hsl(38 90% 60%));
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer select-none;
+  }
+  .chip-idle {
+    @apply bg-secondary border-border text-muted-foreground hover:border-primary/40 hover:text-foreground;
+  }
+  .chip-active {
+    background: hsl(32 95% 54% / 0.12);
+    border-color: hsl(32 95% 54% / 0.4);
+    color: hsl(32 95% 45%);
+  }
+  .dark .chip-active {
+    background: hsl(32 95% 54% / 0.15);
+    border-color: hsl(32 95% 54% / 0.35);
+    color: hsl(32 95% 65%);
+  }
+  .verdict-buy {
+    background: hsl(142 71% 45% / 0.12);
+    border: 1px solid hsl(142 71% 45% / 0.25);
+    color: hsl(142 50% 35%);
+  }
+  .dark .verdict-buy {
+    color: hsl(142 60% 55%);
+  }
+  .verdict-wait {
+    background: hsl(32 95% 54% / 0.12);
+    border: 1px solid hsl(32 95% 54% / 0.25);
+    color: hsl(32 80% 40%);
+  }
+  .dark .verdict-wait {
+    color: hsl(32 95% 65%);
+  }
+  .verdict-skip {
+    background: hsl(0 72% 51% / 0.10);
+    border: 1px solid hsl(0 72% 51% / 0.22);
+    color: hsl(0 60% 40%);
+  }
+  .dark .verdict-skip {
+    color: hsl(0 72% 65%);
+  }
+}
+
+/* ── Animations ── */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pulse-amber {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(32 95% 54% / 0.4); }
+  50%       { box-shadow: 0 0 0 6px hsl(32 95% 54% / 0); }
+}
+
+.animate-slide-up { animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in  { animation: fade-in 0.25s ease both; }
+.animate-pulse-amber { animation: pulse-amber 2s ease infinite; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 99px; }
