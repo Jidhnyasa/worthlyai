@@ -4,7 +4,7 @@
   "installCommand": "npm install",
   "framework": null,
   "functions": {
-    "api/server.js": {
+    "api/server.cjs": {
       "maxDuration": 30,
       "memory": 1024,
       "includeFiles": "dist/**"
