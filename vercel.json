@@ -3,14 +3,16 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "framework": null,
+  "outputDirectory": "dist/public",
   "functions": {
     "api/server.js": {
       "maxDuration": 30,
       "memory": 1024,
-      "includeFiles": "dist/**"
+      "includeFiles": "dist/app.cjs"
     }
   },
   "rewrites": [
-    { "source": "/(.*)", "destination": "/api/server" }
+    { "source": "/api/:path*", "destination": "/api/server" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
