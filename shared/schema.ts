@@ -1,119 +1,46 @@
-import { pgTable, text, integer, serial, boolean, doublePrecision } from "drizzle-orm/pg-core";
+import {
+  pgTable, uuid, text, boolean, timestamp, numeric,
+  jsonb, integer, bigserial, index
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// ─── User Profiles ────────────────────────────────────────────────────────────
-export const userProfiles = pgTable("user_profiles", {
-  id: serial("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  name: text("name"),
-  avatar: text("avatar"),
-  onboardingDone: boolean("onboarding_done").default(false),
-  createdAt: text("created_at").default(new Date().toISOString()),
-});
-
-export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({ id: true, createdAt: true });
-export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
-export type UserProfile = typeof userProfiles.$inferSelect;
-
-// ─── User Preferences ─────────────────────────────────────────────────────────
-export const userPreferences = pgTable("user_preferences", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  categories: text("categories").default("[]"),
-  budgetStyle: text("budget_style").default("balanced"),
-  favoriteBrands: text("favorite_brands").default("[]"),
-  dislikedBrands: text("disliked_brands").default("[]"),
-  moods: text("moods").default("[]"),
-  occasions: text("occasions").default("[]"),
-  sizes: text("sizes").default("{}"),
-  skinHairProfile: text("skin_hair_profile").default("{}"),
-  lifestyleTags: text("lifestyle_tags").default("[]"),
-  giftRelationships: text("gift_relationships").default("[]"),
-});
-
-export const insertUserPreferencesSchema = createInsertSchema(userPreferences).omit({ id: true });
-export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
-export type UserPreferences = typeof userPreferences.$inferSelect;
-
 // ─── Queries ──────────────────────────────────────────────────────────────────
 export const queries = pgTable("queries", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id"),
-  sessionId: text("session_id"),
-  category: text("category"),
-  message: text("message"),
-  budgetMin: doublePrecision("budget_min"),
-  budgetMax: doublePrecision("budget_max"),
-  mood: text("mood").default("[]"),
-  occasion: text("occasion"),
-  forWhom: text("for_whom").default("self"),
-  favoriteBrands: text("favorite_brands").default("[]"),
-  dislikedBrands: text("disliked_brands").default("[]"),
-  mustHaves: text("must_haves").default("[]"),
-  dealbreakers: text("dealbreakers").default("[]"),
-  urgency: text("urgency").default("flexible"),
-  imageUrl: text("image_url"),
-  notes: text("notes"),
-  status: text("status").default("pending"),
-  createdAt: text("created_at").default(new Date().toISOString()),
+  id:              uuid("id").primaryKey().defaultRandom(),
+  userId:          uuid("user_id"),
+  sessionId:       text("session_id"),
+  rawQuery:        text("raw_query").notNull(),
+  normalizedQuery: text("normalized_query"),
+  queryType:       text("query_type"),
+  category:        text("category"),
+  budgetMin:       numeric("budget_min"),
+  budgetMax:       numeric("budget_max"),
+  mood:            text("mood"),
+  occasion:        text("occasion"),
+  hasImage:        boolean("has_image").default(false),
+  createdAt:       timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-export const insertQuerySchema = createInsertSchema(queries).omit({ id: true, createdAt: true, status: true });
+export const insertQuerySchema = createInsertSchema(queries).omit({ id: true, createdAt: true });
 export type InsertQuery = z.infer<typeof insertQuerySchema>;
 export type Query = typeof queries.$inferSelect;
 
-// ─── Products ─────────────────────────────────────────────────────────────────
-export const products = pgTable("products", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  brand: text("brand"),
-  category: text("category"),
-  price: doublePrecision("price"),
-  priceRange: text("price_range"),
-  imageUrl: text("image_url"),
-  description: text("description"),
-  pros: text("pros").default("[]"),
-  cons: text("cons").default("[]"),
-  tags: text("tags").default("[]"),
-  externalId: text("external_id"),
-});
-
-export const insertProductSchema = createInsertSchema(products).omit({ id: true });
-export type InsertProduct = z.infer<typeof insertProductSchema>;
-export type Product = typeof products.$inferSelect;
-
-// ─── Merchant Offers ──────────────────────────────────────────────────────────
-export const merchantOffers = pgTable("merchant_offers", {
-  id: serial("id").primaryKey(),
-  productId: integer("product_id").notNull(),
-  merchantName: text("merchant_name").notNull(),
-  merchantUrl: text("merchant_url"),
-  affiliateUrl: text("affiliate_url"),
-  price: doublePrecision("price"),
-  inStock: boolean("in_stock").default(true),
-  isAffiliate: boolean("is_affiliate").default(false),
-  shippingNote: text("shipping_note"),
-});
-
-export type MerchantOffer = typeof merchantOffers.$inferSelect;
-
 // ─── Recommendations ──────────────────────────────────────────────────────────
 export const recommendations = pgTable("recommendations", {
-  id: serial("id").primaryKey(),
-  queryId: integer("query_id").notNull(),
-  userId: integer("user_id"),
-  verdict: text("verdict").default("wait"),
-  confidence: text("confidence").default("medium"),
-  confidenceScore: integer("confidence_score").default(70),
-  explanation: text("explanation"),
-  tradeoffs: text("tradeoffs").default("[]"),
-  regretRisk: text("regret_risk"),
-  resaleNote: text("resale_note"),
-  topPickId: integer("top_pick_id"),
-  budgetPickId: integer("budget_pick_id"),
-  products: text("products").default("[]"),
-  createdAt: text("created_at").default(new Date().toISOString()),
+  id:                 uuid("id").primaryKey().defaultRandom(),
+  userId:             uuid("user_id"),
+  queryId:            uuid("query_id"),
+  topChoiceProductId: uuid("top_choice_product_id"),
+  resultJson:         jsonb("result_json").notNull(),
+  buyWaitSkip:        text("buy_wait_skip").notNull(),
+  fitScore:           numeric("fit_score"),
+  valueScore:         numeric("value_score"),
+  confidenceScore:    numeric("confidence_score"),
+  regretScore:        numeric("regret_score"),
+  resaleScore:        numeric("resale_score"),
+  explanation:        text("explanation"),
+  createdAt:          timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
 export const insertRecommendationSchema = createInsertSchema(recommendations).omit({ id: true, createdAt: true });
@@ -122,50 +49,67 @@ export type Recommendation = typeof recommendations.$inferSelect;
 
 // ─── Saved Items ──────────────────────────────────────────────────────────────
 export const savedItems = pgTable("saved_items", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id"),
-  sessionId: text("session_id"),
-  productTitle: text("product_title").notNull(),
-  productBrand: text("product_brand"),
-  productPrice: doublePrecision("product_price"),
-  productImageUrl: text("product_image_url"),
-  category: text("category"),
-  score: integer("score"),
-  verdict: text("verdict"),
-  notes: text("notes"),
-  merchantUrl: text("merchant_url"),
-  savedAt: text("saved_at").default(new Date().toISOString()),
+  id:               uuid("id").primaryKey().defaultRandom(),
+  userId:           uuid("user_id").notNull(),
+  productId:        uuid("product_id"),
+  recommendationId: uuid("recommendation_id"),
+  collectionId:     uuid("collection_id"),
+  notes:            text("notes"),
+  createdAt:        timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-export const insertSavedItemSchema = createInsertSchema(savedItems).omit({ id: true, savedAt: true });
+export const insertSavedItemSchema = createInsertSchema(savedItems).omit({ id: true, createdAt: true });
 export type InsertSavedItem = z.infer<typeof insertSavedItemSchema>;
 export type SavedItem = typeof savedItems.$inferSelect;
 
+// ─── User Preferences ─────────────────────────────────────────────────────────
+export const userPreferences = pgTable("user_preferences", {
+  id:                  uuid("id").primaryKey().defaultRandom(),
+  userId:              uuid("user_id").notNull().unique(),
+  budgetDefaultMin:    numeric("budget_default_min"),
+  budgetDefaultMax:    numeric("budget_default_max"),
+  favoriteBrands:      jsonb("favorite_brands").$type<string[]>().default([]),
+  dislikedBrands:      jsonb("disliked_brands").$type<string[]>().default([]),
+  preferredColors:     jsonb("preferred_colors").$type<string[]>().default([]),
+  preferredStyles:     jsonb("preferred_styles").$type<string[]>().default([]),
+  preferredSizes:      jsonb("preferred_sizes").$type<Record<string, string>>().default({}),
+  skinHairProfile:     jsonb("skin_hair_profile"),
+  lifestyleTags:       jsonb("lifestyle_tags").$type<string[]>().default([]),
+  occasionPreferences: jsonb("occasion_preferences").$type<string[]>().default([]),
+  moodPreferences:     jsonb("mood_preferences").$type<string[]>().default([]),
+  updatedAt:           timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export type UserPreferences = typeof userPreferences.$inferSelect;
+export type InsertUserPreferences = typeof userPreferences.$inferInsert;
+
 // ─── Feedback ─────────────────────────────────────────────────────────────────
 export const feedback = pgTable("feedback", {
-  id: serial("id").primaryKey(),
-  queryId: integer("query_id"),
-  recommendationId: integer("recommendation_id"),
-  sessionId: text("session_id"),
-  vote: text("vote"),
-  outcome: text("outcome"),
-  createdAt: text("created_at").default(new Date().toISOString()),
+  id:               uuid("id").primaryKey().defaultRandom(),
+  userId:           uuid("user_id"),
+  queryId:          uuid("query_id"),
+  recommendationId: uuid("recommendation_id"),
+  productId:        uuid("product_id"),
+  helpful:          boolean("helpful"),
+  outcome:          text("outcome"),
+  regretLevel:      integer("regret_level"),
+  notes:            text("notes"),
+  createdAt:        timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
 export const insertFeedbackSchema = createInsertSchema(feedback).omit({ id: true, createdAt: true });
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 export type Feedback = typeof feedback.$inferSelect;
 
-// ─── Behavior Events ──────────────────────────────────────────────────────────
-export const behaviorEvents = pgTable("behavior_events", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id"),
-  sessionId: text("session_id"),
+// ─── User Behavior Events ─────────────────────────────────────────────────────
+export const userBehaviorEvents = pgTable("user_behavior_events", {
+  id:        bigserial("id", { mode: "number" }).primaryKey(),
+  userId:    uuid("user_id"),
   eventType: text("event_type").notNull(),
-  productTitle: text("product_title"),
-  category: text("category"),
-  metadata: text("metadata").default("{}"),
-  createdAt: text("created_at").default(new Date().toISOString()),
+  productId: uuid("product_id"),
+  queryId:   uuid("query_id"),
+  payload:   jsonb("payload").default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
 // ─── Shared Types (for AI pipeline) ───────────────────────────────────────────
@@ -227,5 +171,5 @@ export interface QueryPayload {
   imageBase64?: string;
   notes?: string;
   sessionId?: string;
-  userId?: number;
+  userId?: string;
 }

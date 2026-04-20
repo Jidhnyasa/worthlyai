@@ -2,34 +2,56 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { eq, desc } from "drizzle-orm";
 import {
-  userPreferences, queries, recommendations, savedItems, feedback,
-  type UserPreferences, type InsertUserPreferences,
+  queries, recommendations, savedItems, feedback, userPreferences,
   type Query, type InsertQuery,
   type Recommendation, type InsertRecommendation,
   type SavedItem, type InsertSavedItem,
   type InsertFeedback,
+  type UserPreferences,
+  type RecommendationResult,
 } from "@shared/schema";
 
 const client = postgres(process.env.DATABASE_URL!, { ssl: "require", max: 1 });
 export const db = drizzle(client);
 
 export interface IStorage {
-  createQuery(data: InsertQuery): Promise<Query>;
-  getQuery(id: number): Promise<Query | undefined>;
-  updateQueryStatus(id: number, status: string): Promise<void>;
-  getQueryHistory(sessionId: string, limit?: number): Promise<Query[]>;
+  createQuery(data: {
+    sessionId?: string;
+    userId?: string;
+    rawQuery: string;
+    category?: string;
+    budgetMin?: number;
+    budgetMax?: number;
+    mood?: string;
+    occasion?: string;
+    queryType?: string;
+  }): Promise<Query>;
 
-  createRecommendation(data: InsertRecommendation): Promise<Recommendation>;
-  getRecommendation(queryId: number): Promise<Recommendation | undefined>;
+  updateQueryStatus(id: string, status: string): Promise<void>;
 
-  saveItem(data: InsertSavedItem): Promise<SavedItem>;
-  getSavedItems(sessionId: string): Promise<SavedItem[]>;
-  deleteSavedItem(id: number): Promise<void>;
+  createRecommendation(data: {
+    queryId: string;
+    userId?: string;
+    result: RecommendationResult;
+  }): Promise<Recommendation>;
 
-  submitFeedback(data: InsertFeedback): Promise<void>;
+  getRecommendation(queryId: string): Promise<Recommendation | undefined>;
 
-  getPreferences(sessionId: string): Promise<UserPreferences | undefined>;
-  upsertPreferences(sessionId: string, prefs: Partial<UserPreferences>): Promise<UserPreferences>;
+  saveItem(data: { userId: string; recommendationId?: string; notes?: string }): Promise<SavedItem>;
+  getSavedItems(userId: string): Promise<SavedItem[]>;
+  deleteSavedItem(id: string): Promise<void>;
+
+  submitFeedback(data: {
+    userId?: string;
+    queryId?: string;
+    recommendationId?: string;
+    helpful?: boolean;
+    outcome?: string;
+    notes?: string;
+  }): Promise<void>;
+
+  getPreferences(userId: string): Promise<UserPreferences | undefined>;
+  upsertPreferences(userId: string, prefs: Partial<UserPreferences>): Promise<UserPreferences>;
 
   getHistory(sessionId: string, limit?: number): Promise<Array<Query & { recommendation?: Recommendation }>>;
 }
@@ -37,55 +59,57 @@ export interface IStorage {
 export const storage: IStorage = {
   async createQuery(data) {
     const [row] = await db.insert(queries).values({
-      ...data,
-      mood: JSON.stringify(data.mood ?? []),
-      favoriteBrands: JSON.stringify(data.favoriteBrands ?? []),
-      dislikedBrands: JSON.stringify(data.dislikedBrands ?? []),
-      mustHaves: JSON.stringify(data.mustHaves ?? []),
-      dealbreakers: JSON.stringify(data.dealbreakers ?? []),
+      sessionId:  data.sessionId,
+      userId:     data.userId ?? null,
+      rawQuery:   data.rawQuery,
+      category:   data.category,
+      budgetMin:  data.budgetMin?.toString(),
+      budgetMax:  data.budgetMax?.toString(),
+      mood:       data.mood,
+      occasion:   data.occasion,
+      queryType:  data.queryType ?? "recommendation",
     }).returning();
     return row;
   },
 
-  async getQuery(id) {
-    const [row] = await db.select().from(queries).where(eq(queries.id, id));
-    return row;
-  },
+  // queries table has no status column — kept for API compatibility
+  async updateQueryStatus(_id, _status) {},
 
-  async updateQueryStatus(id, status) {
-    await db.update(queries).set({ status }).where(eq(queries.id, id));
-  },
-
-  async getQueryHistory(sessionId, limit = 20) {
-    return db.select().from(queries)
-      .where(eq(queries.sessionId, sessionId))
-      .orderBy(desc(queries.id))
-      .limit(limit);
-  },
-
-  async createRecommendation(data) {
+  async createRecommendation({ queryId, userId, result }) {
+    const top = result.topChoice;
     const [row] = await db.insert(recommendations).values({
-      ...data,
-      tradeoffs: JSON.stringify(data.tradeoffs ?? []),
-      products: JSON.stringify(data.products ?? []),
+      queryId,
+      userId:          userId ?? null,
+      resultJson:      result as any,
+      buyWaitSkip:     result.verdict,
+      confidenceScore: result.confidenceScore?.toString(),
+      fitScore:        top?.scores?.fitScore?.toString(),
+      valueScore:      top?.scores?.valueScore?.toString(),
+      regretScore:     top?.scores?.regretScore?.toString(),
+      explanation:     result.explanation,
     }).returning();
     return row;
   },
 
   async getRecommendation(queryId) {
-    const [row] = await db.select().from(recommendations).where(eq(recommendations.queryId, queryId));
+    const [row] = await db.select().from(recommendations)
+      .where(eq(recommendations.queryId, queryId));
     return row;
   },
 
   async saveItem(data) {
-    const [row] = await db.insert(savedItems).values(data).returning();
+    const [row] = await db.insert(savedItems).values({
+      userId:           data.userId,
+      recommendationId: data.recommendationId ?? null,
+      notes:            data.notes,
+    }).returning();
     return row;
   },
 
-  async getSavedItems(sessionId) {
+  async getSavedItems(userId) {
     return db.select().from(savedItems)
-      .where(eq(savedItems.sessionId, sessionId))
-      .orderBy(desc(savedItems.id));
+      .where(eq(savedItems.userId, userId))
+      .orderBy(desc(savedItems.createdAt));
   },
 
   async deleteSavedItem(id) {
@@ -93,49 +117,45 @@ export const storage: IStorage = {
   },
 
   async submitFeedback(data) {
-    await db.insert(feedback).values(data);
+    await db.insert(feedback).values({
+      userId:           data.userId ?? null,
+      queryId:          data.queryId ?? null,
+      recommendationId: data.recommendationId ?? null,
+      helpful:          data.helpful,
+      outcome:          data.outcome,
+      notes:            data.notes,
+    });
   },
 
-  async getPreferences(sessionId) {
+  async getPreferences(userId) {
     const [row] = await db.select().from(userPreferences)
-      .where(eq(userPreferences.userId, -1));
+      .where(eq(userPreferences.userId, userId));
     return row;
   },
 
-  async upsertPreferences(sessionId, prefs) {
+  async upsertPreferences(userId, prefs) {
     const [existing] = await db.select().from(userPreferences)
-      .where(eq(userPreferences.userId, -1));
+      .where(eq(userPreferences.userId, userId));
 
     if (existing) {
       const [row] = await db.update(userPreferences).set({
-        categories: prefs.categories ?? existing.categories,
-        budgetStyle: prefs.budgetStyle ?? existing.budgetStyle,
-        favoriteBrands: prefs.favoriteBrands ?? existing.favoriteBrands,
-        dislikedBrands: prefs.dislikedBrands ?? existing.dislikedBrands,
-        moods: prefs.moods ?? existing.moods,
-        occasions: prefs.occasions ?? existing.occasions,
-        lifestyleTags: prefs.lifestyleTags ?? existing.lifestyleTags,
-      }).where(eq(userPreferences.id, existing.id)).returning();
-      return row;
-    } else {
-      const [row] = await db.insert(userPreferences).values({
-        userId: -1,
-        categories: JSON.stringify(prefs.categories ?? []),
-        budgetStyle: prefs.budgetStyle ?? "balanced",
-        favoriteBrands: JSON.stringify(prefs.favoriteBrands ?? []),
-        dislikedBrands: JSON.stringify(prefs.dislikedBrands ?? []),
-        moods: JSON.stringify(prefs.moods ?? []),
-        occasions: JSON.stringify(prefs.occasions ?? []),
-        lifestyleTags: JSON.stringify(prefs.lifestyleTags ?? []),
-      }).returning();
+        ...prefs,
+        updatedAt: new Date(),
+      }).where(eq(userPreferences.userId, userId)).returning();
       return row;
     }
+
+    const [row] = await db.insert(userPreferences).values({
+      userId,
+      ...prefs,
+    }).returning();
+    return row;
   },
 
   async getHistory(sessionId, limit = 15) {
     const qs = await db.select().from(queries)
       .where(eq(queries.sessionId, sessionId))
-      .orderBy(desc(queries.id))
+      .orderBy(desc(queries.createdAt))
       .limit(limit);
 
     return Promise.all(qs.map(async q => {
