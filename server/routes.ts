@@ -11,8 +11,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const payload: QueryPayload = req.body;
       const sessionId = payload.sessionId || req.headers["x-session-id"] as string || "anonymous";
 
-      // Save query
-      const query = storage.createQuery({
+      const query = await storage.createQuery({
         sessionId,
         category: payload.category,
         message: payload.message,
@@ -29,13 +28,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         notes: payload.notes,
       });
 
-      storage.updateQueryStatus(query.id, "processing");
+      await storage.updateQueryStatus(query.id, "processing");
 
-      // Get AI recommendation
       const result = await getRecommendation(payload);
 
-      // Save recommendation
-      const rec = storage.createRecommendation({
+      const rec = await storage.createRecommendation({
         queryId: query.id,
         verdict: result.verdict,
         confidence: result.confidence,
@@ -52,7 +49,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         ]) as any,
       });
 
-      storage.updateQueryStatus(query.id, "done");
+      await storage.updateQueryStatus(query.id, "done");
 
       res.json({ queryId: query.id, recommendationId: rec.id, result });
     } catch (err) {
@@ -62,10 +59,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // ── GET /api/history ─────────────────────────────────────────────────────
-  app.get("/api/history", (req, res) => {
+  app.get("/api/history", async (req, res) => {
     const sessionId = req.headers["x-session-id"] as string || "anonymous";
     try {
-      const history = storage.getHistory(sessionId);
+      const history = await storage.getHistory(sessionId);
       res.json(history.map(h => ({
         ...h,
         mood: safeJson(h.mood, []),
@@ -81,10 +78,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // ── POST /api/save ───────────────────────────────────────────────────────
-  app.post("/api/save", (req, res) => {
+  app.post("/api/save", async (req, res) => {
     const sessionId = req.headers["x-session-id"] as string || "anonymous";
     try {
-      const item = storage.saveItem({ ...req.body, sessionId });
+      const item = await storage.saveItem({ ...req.body, sessionId });
       res.json(item);
     } catch (err) {
       res.status(500).json({ error: "Failed to save item" });
@@ -92,10 +89,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // ── GET /api/saved ───────────────────────────────────────────────────────
-  app.get("/api/saved", (req, res) => {
+  app.get("/api/saved", async (req, res) => {
     const sessionId = req.headers["x-session-id"] as string || "anonymous";
     try {
-      const items = storage.getSavedItems(sessionId);
+      const items = await storage.getSavedItems(sessionId);
       res.json(items);
     } catch (err) {
       res.status(500).json({ error: "Failed to fetch saved items" });
@@ -103,9 +100,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // ── DELETE /api/saved/:id ────────────────────────────────────────────────
-  app.delete("/api/saved/:id", (req, res) => {
+  app.delete("/api/saved/:id", async (req, res) => {
     try {
-      storage.deleteSavedItem(parseInt(req.params.id));
+      await storage.deleteSavedItem(parseInt(req.params.id));
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: "Failed to delete item" });
@@ -113,10 +110,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // ── POST /api/feedback ───────────────────────────────────────────────────
-  app.post("/api/feedback", (req, res) => {
+  app.post("/api/feedback", async (req, res) => {
     const sessionId = req.headers["x-session-id"] as string || "anonymous";
     try {
-      storage.submitFeedback({ ...req.body, sessionId });
+      await storage.submitFeedback({ ...req.body, sessionId });
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: "Failed to submit feedback" });
@@ -124,10 +121,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // ── GET /api/preferences ─────────────────────────────────────────────────
-  app.get("/api/preferences", (req, res) => {
+  app.get("/api/preferences", async (req, res) => {
     const sessionId = req.headers["x-session-id"] as string || "anonymous";
     try {
-      const prefs = storage.getPreferences(sessionId);
+      const prefs = await storage.getPreferences(sessionId);
       if (!prefs) return res.json(null);
       res.json({
         ...prefs,
@@ -144,10 +141,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // ── POST /api/preferences ────────────────────────────────────────────────
-  app.post("/api/preferences", (req, res) => {
+  app.post("/api/preferences", async (req, res) => {
     const sessionId = req.headers["x-session-id"] as string || "anonymous";
     try {
-      const prefs = storage.upsertPreferences(sessionId, {
+      const prefs = await storage.upsertPreferences(sessionId, {
         ...req.body,
         categories: JSON.stringify(req.body.categories ?? []),
         favoriteBrands: JSON.stringify(req.body.favoriteBrands ?? []),

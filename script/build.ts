@@ -26,6 +26,7 @@ const allowlist = [
   "uuid",
   "ws",
   "xlsx",
+  "postgres",
   "zod",
   "zod-validation-error",
 ];

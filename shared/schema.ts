@@ -1,14 +1,14 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, serial, boolean, doublePrecision } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // ─── User Profiles ────────────────────────────────────────────────────────────
-export const userProfiles = sqliteTable("user_profiles", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const userProfiles = pgTable("user_profiles", {
+  id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name"),
   avatar: text("avatar"),
-  onboardingDone: integer("onboarding_done", { mode: "boolean" }).default(false),
+  onboardingDone: boolean("onboarding_done").default(false),
   createdAt: text("created_at").default(new Date().toISOString()),
 });
 
@@ -17,16 +17,16 @@ export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 export type UserProfile = typeof userProfiles.$inferSelect;
 
 // ─── User Preferences ─────────────────────────────────────────────────────────
-export const userPreferences = sqliteTable("user_preferences", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const userPreferences = pgTable("user_preferences", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  categories: text("categories").default("[]"),       // JSON string[]
-  budgetStyle: text("budget_style").default("balanced"), // budget|balanced|quality|premium
-  favoriteBrands: text("favorite_brands").default("[]"), // JSON string[]
+  categories: text("categories").default("[]"),
+  budgetStyle: text("budget_style").default("balanced"),
+  favoriteBrands: text("favorite_brands").default("[]"),
   dislikedBrands: text("disliked_brands").default("[]"),
-  moods: text("moods").default("[]"),                 // JSON Mood[]
+  moods: text("moods").default("[]"),
   occasions: text("occasions").default("[]"),
-  sizes: text("sizes").default("{}"),                 // JSON { tops, bottoms, shoes, ... }
+  sizes: text("sizes").default("{}"),
   skinHairProfile: text("skin_hair_profile").default("{}"),
   lifestyleTags: text("lifestyle_tags").default("[]"),
   giftRelationships: text("gift_relationships").default("[]"),
@@ -37,25 +37,25 @@ export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
 export type UserPreferences = typeof userPreferences.$inferSelect;
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
-export const queries = sqliteTable("queries", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const queries = pgTable("queries", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id"),
   sessionId: text("session_id"),
   category: text("category"),
   message: text("message"),
-  budgetMin: real("budget_min"),
-  budgetMax: real("budget_max"),
-  mood: text("mood").default("[]"),           // JSON string[]
+  budgetMin: doublePrecision("budget_min"),
+  budgetMax: doublePrecision("budget_max"),
+  mood: text("mood").default("[]"),
   occasion: text("occasion"),
-  forWhom: text("for_whom").default("self"),  // self|gift|family
+  forWhom: text("for_whom").default("self"),
   favoriteBrands: text("favorite_brands").default("[]"),
   dislikedBrands: text("disliked_brands").default("[]"),
   mustHaves: text("must_haves").default("[]"),
   dealbreakers: text("dealbreakers").default("[]"),
-  urgency: text("urgency").default("flexible"), // now|soon|flexible
+  urgency: text("urgency").default("flexible"),
   imageUrl: text("image_url"),
   notes: text("notes"),
-  status: text("status").default("pending"), // pending|processing|done|error
+  status: text("status").default("pending"),
   createdAt: text("created_at").default(new Date().toISOString()),
 });
 
@@ -64,16 +64,16 @@ export type InsertQuery = z.infer<typeof insertQuerySchema>;
 export type Query = typeof queries.$inferSelect;
 
 // ─── Products ─────────────────────────────────────────────────────────────────
-export const products = sqliteTable("products", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
   title: text("title").notNull(),
   brand: text("brand"),
   category: text("category"),
-  price: real("price"),
+  price: doublePrecision("price"),
   priceRange: text("price_range"),
   imageUrl: text("image_url"),
   description: text("description"),
-  pros: text("pros").default("[]"),           // JSON string[]
+  pros: text("pros").default("[]"),
   cons: text("cons").default("[]"),
   tags: text("tags").default("[]"),
   externalId: text("external_id"),
@@ -84,35 +84,35 @@ export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
 
 // ─── Merchant Offers ──────────────────────────────────────────────────────────
-export const merchantOffers = sqliteTable("merchant_offers", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const merchantOffers = pgTable("merchant_offers", {
+  id: serial("id").primaryKey(),
   productId: integer("product_id").notNull(),
   merchantName: text("merchant_name").notNull(),
   merchantUrl: text("merchant_url"),
   affiliateUrl: text("affiliate_url"),
-  price: real("price"),
-  inStock: integer("in_stock", { mode: "boolean" }).default(true),
-  isAffiliate: integer("is_affiliate", { mode: "boolean" }).default(false),
+  price: doublePrecision("price"),
+  inStock: boolean("in_stock").default(true),
+  isAffiliate: boolean("is_affiliate").default(false),
   shippingNote: text("shipping_note"),
 });
 
 export type MerchantOffer = typeof merchantOffers.$inferSelect;
 
 // ─── Recommendations ──────────────────────────────────────────────────────────
-export const recommendations = sqliteTable("recommendations", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const recommendations = pgTable("recommendations", {
+  id: serial("id").primaryKey(),
   queryId: integer("query_id").notNull(),
   userId: integer("user_id"),
-  verdict: text("verdict").default("wait"),       // buy|wait|skip
-  confidence: text("confidence").default("medium"), // low|medium|high
+  verdict: text("verdict").default("wait"),
+  confidence: text("confidence").default("medium"),
   confidenceScore: integer("confidence_score").default(70),
   explanation: text("explanation"),
-  tradeoffs: text("tradeoffs").default("[]"),      // JSON string[]
+  tradeoffs: text("tradeoffs").default("[]"),
   regretRisk: text("regret_risk"),
   resaleNote: text("resale_note"),
   topPickId: integer("top_pick_id"),
   budgetPickId: integer("budget_pick_id"),
-  products: text("products").default("[]"),        // JSON ScoredProduct[]
+  products: text("products").default("[]"),
   createdAt: text("created_at").default(new Date().toISOString()),
 });
 
@@ -121,13 +121,13 @@ export type InsertRecommendation = z.infer<typeof insertRecommendationSchema>;
 export type Recommendation = typeof recommendations.$inferSelect;
 
 // ─── Saved Items ──────────────────────────────────────────────────────────────
-export const savedItems = sqliteTable("saved_items", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const savedItems = pgTable("saved_items", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id"),
   sessionId: text("session_id"),
   productTitle: text("product_title").notNull(),
   productBrand: text("product_brand"),
-  productPrice: real("product_price"),
+  productPrice: doublePrecision("product_price"),
   productImageUrl: text("product_image_url"),
   category: text("category"),
   score: integer("score"),
@@ -142,13 +142,13 @@ export type InsertSavedItem = z.infer<typeof insertSavedItemSchema>;
 export type SavedItem = typeof savedItems.$inferSelect;
 
 // ─── Feedback ─────────────────────────────────────────────────────────────────
-export const feedback = sqliteTable("feedback", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const feedback = pgTable("feedback", {
+  id: serial("id").primaryKey(),
   queryId: integer("query_id"),
   recommendationId: integer("recommendation_id"),
   sessionId: text("session_id"),
-  vote: text("vote"),           // up|down
-  outcome: text("outcome"),     // bought|skipped|regret|loved|returned
+  vote: text("vote"),
+  outcome: text("outcome"),
   createdAt: text("created_at").default(new Date().toISOString()),
 });
 
@@ -157,14 +157,14 @@ export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 export type Feedback = typeof feedback.$inferSelect;
 
 // ─── Behavior Events ──────────────────────────────────────────────────────────
-export const behaviorEvents = sqliteTable("behavior_events", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const behaviorEvents = pgTable("behavior_events", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id"),
   sessionId: text("session_id"),
-  eventType: text("event_type").notNull(), // clicked|saved|skipped|bought|regretted|returned
+  eventType: text("event_type").notNull(),
   productTitle: text("product_title"),
   category: text("category"),
-  metadata: text("metadata").default("{}"), // JSON
+  metadata: text("metadata").default("{}"),
   createdAt: text("created_at").default(new Date().toISOString()),
 });
 
