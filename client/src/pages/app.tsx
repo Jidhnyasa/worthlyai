@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { applySeo } from "@/lib/seo";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
@@ -30,6 +31,10 @@ export default function AppPage() {
   const [results, setResults]         = useState<QueryResult[]>([]);
   const [showForm, setShowForm]       = useState(true);
   const [initialValues, setInitialValues] = useState<Partial<QueryPayload>>({});
+
+  useEffect(() => {
+    applySeo({ title: "Worthly App", noindex: true });
+  }, []);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const queryMutation = useMutation({

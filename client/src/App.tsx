@@ -1,8 +1,8 @@
-import { Switch, Route, Router } from "wouter";
-import { useHashLocation } from "wouter/use-hash-location";
+import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
+import HashCompatRedirect from "@/components/HashCompatRedirect";
 
 import LandingPage from "@/pages/landing";
 import AppPage from "@/pages/app";
@@ -16,18 +16,18 @@ import NotFound from "@/pages/not-found";
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router hook={useHashLocation}>
-        <Switch>
-          <Route path="/" component={LandingPage} />
-          <Route path="/app" component={AppPage} />
-          <Route path="/onboarding" component={OnboardingPage} />
-          <Route path="/compare" component={ComparePage} />
-          <Route path="/saved" component={SavedPage} />
-          <Route path="/history" component={HistoryPage} />
-          <Route path="/settings" component={SettingsPage} />
-          <Route component={NotFound} />
-        </Switch>
-      </Router>
+      {/* Redirect legacy /#/path → /path for anyone with old bookmarks */}
+      <HashCompatRedirect />
+      <Switch>
+        <Route path="/" component={LandingPage} />
+        <Route path="/app" component={AppPage} />
+        <Route path="/onboarding" component={OnboardingPage} />
+        <Route path="/compare" component={ComparePage} />
+        <Route path="/saved" component={SavedPage} />
+        <Route path="/history" component={HistoryPage} />
+        <Route path="/settings" component={SettingsPage} />
+        <Route component={NotFound} />
+      </Switch>
       <Toaster />
     </QueryClientProvider>
   );

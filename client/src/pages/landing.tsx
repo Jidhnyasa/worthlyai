@@ -501,6 +501,16 @@ export default function LandingPage() {
   const heroBgY = useTransform(scrollYProgress, [0, 1], ["0%", "18%"]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
 
+  useEffect(() => {
+    import("@/lib/seo").then(({ applySeo }) =>
+      applySeo({
+        title: "Worthly — AI Buying Decision Engine",
+        description: "Not a chatbot. A structured, personalized buying decision system. Get scored recommendations, tradeoff analysis, and a clear Buy / Wait / Skip verdict.",
+        canonical: "https://worthlyai.app/",
+      })
+    );
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen">
       <StickyHeader />
