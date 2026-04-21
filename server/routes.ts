@@ -12,26 +12,32 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const sessionId = payload.sessionId || req.headers["x-session-id"] as string || "anonymous";
       const userId = payload.userId || req.headers["x-user-id"] as string | undefined;
 
-      const query = await storage.createQuery({
-        sessionId,
-        userId,
-        rawQuery:  payload.message,
-        category:  payload.category,
-        budgetMin: payload.budgetMin,
-        budgetMax: payload.budgetMax,
-        mood:      payload.mood?.join(", "),
-        occasion:  payload.occasion,
-      });
-
+      // AI call first — works even if DB is unavailable
       const result = await getRecommendation(payload);
 
-      const rec = await storage.createRecommendation({
-        queryId: query.id,
-        userId,
-        result,
-      });
+      // Best-effort DB persistence — don't fail the request if DB is down
+      let queryId: string | undefined;
+      let recommendationId: string | undefined;
+      try {
+        const query = await storage.createQuery({
+          sessionId,
+          userId,
+          rawQuery:  payload.message,
+          category:  payload.category,
+          budgetMin: payload.budgetMin,
+          budgetMax: payload.budgetMax,
+          mood:      payload.mood?.join(", "),
+          occasion:  payload.occasion,
+        });
+        queryId = query.id;
 
-      res.json({ queryId: query.id, recommendationId: rec.id, result });
+        const rec = await storage.createRecommendation({ queryId: query.id, userId, result });
+        recommendationId = rec.id;
+      } catch (dbErr) {
+        console.error("DB persistence failed (non-fatal):", dbErr);
+      }
+
+      res.json({ queryId, recommendationId, result });
     } catch (err) {
       console.error("Query error:", err);
       res.status(500).json({ error: "Failed to process query" });
