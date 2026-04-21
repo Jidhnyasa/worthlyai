@@ -4,15 +4,25 @@ import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import HashCompatRedirect from "@/components/HashCompatRedirect";
 
-// App pages
+// Public / marketing
 import LandingPage    from "@/pages/landing";
-import AppPage        from "@/pages/app";
+import NotFound       from "@/pages/not-found";
+
+// App core (purchase protection)
+import DashboardPage      from "@/pages/dashboard";
+import ReturnsPage        from "@/pages/returns";
+import SubscriptionsPage  from "@/pages/subscriptions";
+import ActionsPage        from "@/pages/actions";
+
+// App utilities
 import OnboardingPage from "@/pages/onboarding";
 import ComparePage    from "@/pages/compare";
 import SavedPage      from "@/pages/saved";
 import HistoryPage    from "@/pages/history";
 import SettingsPage   from "@/pages/settings";
-import NotFound       from "@/pages/not-found";
+
+// Verdicts (buy/wait/skip) — renamed from app
+import VerdictsPage from "@/pages/app";
 
 // Public discovery pages
 import VerdictSlugPage  from "@/pages/verdict-slug";
@@ -24,9 +34,17 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <HashCompatRedirect />
       <Switch>
-        {/* ── Core app ── */}
-        <Route path="/"           component={LandingPage} />
-        <Route path="/app"        component={AppPage} />
+        {/* ── Marketing ── */}
+        <Route path="/" component={LandingPage} />
+
+        {/* ── App: purchase protection ── */}
+        <Route path="/app"               component={DashboardPage} />
+        <Route path="/app/returns"       component={ReturnsPage} />
+        <Route path="/app/subscriptions" component={SubscriptionsPage} />
+        <Route path="/app/actions"       component={ActionsPage} />
+        <Route path="/app/verdicts"      component={VerdictsPage} />
+
+        {/* ── App utilities ── */}
         <Route path="/onboarding" component={OnboardingPage} />
         <Route path="/compare"    component={ComparePage} />
         <Route path="/saved"      component={SavedPage} />
@@ -34,8 +52,8 @@ export default function App() {
         <Route path="/settings"   component={SettingsPage} />
 
         {/* ── Public discovery ── */}
-        <Route path="/verdict/:slug"  component={VerdictSlugPage} />
-        <Route path="/compare/:slug"  component={CompareSlugPage} />
+        <Route path="/verdict/:slug" component={VerdictSlugPage} />
+        <Route path="/compare/:slug" component={CompareSlugPage} />
 
         {/* ── Category hubs ── */}
         <Route path="/gifts">

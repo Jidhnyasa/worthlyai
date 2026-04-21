@@ -112,6 +112,56 @@ export const userBehaviorEvents = pgTable("user_behavior_events", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+// ─── Frontend-only types (purchase protection features) ───────────────────────
+
+export type ReturnStatus = "active" | "expiring_soon" | "expired";
+export type SubscriptionStatus = "active" | "trial" | "cancelled";
+export type ActionType = "return" | "cancel" | "refund" | "price_match" | "negotiate";
+export type ActionPriority = "high" | "medium" | "low";
+
+export interface Purchase {
+  id: string;
+  title: string;
+  brand: string;
+  category: string;
+  price: number;
+  imageUrl?: string;
+  purchasedAt: Date;
+  returnWindowDays: number;
+  merchant: string;
+  returnStatus: ReturnStatus;
+  daysUntilDeadline: number;
+  orderNumber?: string;
+}
+
+export interface Subscription {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  billingCycle: "monthly" | "yearly";
+  renewsAt: Date;
+  daysUntilRenewal: number;
+  status: SubscriptionStatus;
+  usageFlag?: "unused" | "low_usage";
+  cancellationUrl?: string;
+}
+
+export interface ActionItem {
+  id: string;
+  type: ActionType;
+  priority: ActionPriority;
+  title: string;
+  description: string;
+  potentialSaving?: number;
+  deadline?: Date;
+  purchaseId?: string;
+  subscriptionId?: string;
+  draftSubject?: string;
+  draftBody?: string;
+  completed: boolean;
+}
+
 // ─── Shared Types (for AI pipeline) ───────────────────────────────────────────
 export interface ScoredProduct {
   title: string;

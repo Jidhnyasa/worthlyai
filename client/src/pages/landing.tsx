@@ -24,97 +24,97 @@ const DEMO_POSTER_URL =
 // ── Data ──────────────────────────────────────────────────────────────────────
 const FEATURES = [
   {
-    icon: Target,
-    title: "Structured decision form",
-    body: "Not a blank chat box. Set your budget, mood, occasion, and priorities with smart chips and sliders.",
-    color: "from-amber-500/15 to-amber-400/5",
-  },
-  {
     icon: Shield,
-    title: "Works for you, not brands",
-    body: "Affiliate availability never influences ranking. Worthly will recommend 'skip' even when there's no commission.",
-    color: "from-emerald-500/15 to-emerald-400/5",
-  },
-  {
-    icon: TrendingDown,
-    title: "Regret-minimizing scoring",
-    body: "Every recommendation is scored on fit, value, proof, and regret risk — not sponsored placement.",
-    color: "from-blue-500/15 to-blue-400/5",
-  },
-  {
-    icon: BarChart2,
-    title: "Side-by-side comparison",
-    body: "Compare multiple options with a clear score table. See exactly why one beats another.",
-    color: "from-violet-500/15 to-violet-400/5",
-  },
-  {
-    icon: Heart,
-    title: "Personalized over time",
-    body: "Worthly learns what you own, love, and regret to make sharper decisions over time.",
-    color: "from-rose-500/15 to-rose-400/5",
+    title: "Return window tracking",
+    body: "Never miss a return deadline again. Worthly tracks every purchase and alerts you before the window closes.",
+    color: "from-red-500/15 to-red-400/5",
   },
   {
     icon: RefreshCcw,
-    title: "Resale second life",
-    body: "Track resale value from day one. Know what your purchase is worth before you buy it.",
-    color: "from-cyan-500/15 to-cyan-400/5",
+    title: "Subscription cleanup",
+    body: "AI scans your subscriptions and flags unused or duplicate services — with a cancel draft ready to send.",
+    color: "from-blue-500/15 to-blue-400/5",
+  },
+  {
+    icon: TrendingDown,
+    title: "Price match recovery",
+    body: "Found it cheaper elsewhere? Worthly drafts the price-match request so you get refunded in minutes.",
+    color: "from-emerald-500/15 to-emerald-400/5",
+  },
+  {
+    icon: BarChart2,
+    title: "Action assistant",
+    body: "One-tap access to copy-ready emails for returns, cancellations, refunds, and rate negotiations.",
+    color: "from-violet-500/15 to-violet-400/5",
+  },
+  {
+    icon: Target,
+    title: "Buy / Wait / Skip verdicts",
+    body: "Before you spend, get a structured verdict scored on fit, value, and regret risk — not sponsored placement.",
+    color: "from-amber-500/15 to-amber-400/5",
+  },
+  {
+    icon: Heart,
+    title: "Works for your wallet",
+    body: "Worthly makes money when you save money. No affiliate bias, no sponsored rankings.",
+    color: "from-rose-500/15 to-rose-400/5",
   },
 ];
 
 const EXAMPLES = [
-  { category: "Electronics", query: "Sony WH-1000XM5 or Bose QC45 under $300?", verdict: "Buy", score: 91 },
-  { category: "Fashion",     query: "Cozy but polished dinner outfit under $150",  verdict: "Buy", score: 87 },
-  { category: "Baby",        query: "Best travel stroller under $300",              verdict: "Wait", score: 74 },
-  { category: "Gifting",     query: "Gift for husband who loves coffee under $80",  verdict: "Buy", score: 88 },
+  { category: "Return tracked", query: "Nike Air Max 270 — return window closes in 12 days", verdict: "Act", score: 150 },
+  { category: "Cancelled",      query: "Disney+ flagged as unused for 2 months — $167 saved",  verdict: "Saved", score: 168 },
+  { category: "Price matched",  query: "Samsung TV — $150 refunded via Best Buy price match",  verdict: "Got $150", score: 150 },
+  { category: "Verdict",        query: "Sony WH-1000XM5 vs Bose QC45 under $300",              verdict: "Buy", score: 91 },
 ];
 
 const TESTIMONIALS = [
   {
-    quote: "Finally stopped doomscrolling Reddit for 2 hours before every purchase. Worthly gives me a structured answer in seconds.",
+    quote: "Worthly alerted me that my Nike return window was closing in 4 days. I'd completely forgotten. Got my $150 back.",
     name: "Marcus T.", role: "Product designer", stars: 5,
     avatar: "M",
   },
   {
-    quote: "It told me to skip the $300 headphones and get a $120 pair that scored better on my actual priorities. Saved me $180.",
+    quote: "Found 3 unused subscriptions totalling $68/month. Worthly had the cancellation emails ready to copy in one tap.",
     name: "Priya K.", role: "Software engineer", stars: 5,
     avatar: "P",
   },
   {
-    quote: "The structured form is the key — I fill in my actual constraints and get a real answer, not a wall of AI text.",
+    quote: "Got $150 back on my TV via a Best Buy price match. Worthly spotted the price difference and drafted the email.",
     name: "James O.", role: "Finance analyst", stars: 5,
     avatar: "J",
   },
   {
-    quote: "Uploaded a photo of a jacket I was eyeing. Got a full comparison with three better alternatives in seconds.",
+    quote: "The Buy/Wait/Skip verdict saved me from a $300 impulse buy. Turned out the $120 option scored higher for my use case.",
     name: "Sofia M.", role: "Stylist", stars: 5,
     avatar: "S",
   },
 ];
 
 const ROTATING_QUERIES = [
-  "Best wireless headphones for commuting under $250",
-  "Stylish running shoes that also look good off-trail",
-  "Gift for a coffee lover who has everything",
-  "Lightweight laptop for college under $900",
-  "Best robot vacuum for pet hair under $400",
-  "Cozy but polished winter coat under $200",
+  "Return window closes in 3 days — act before it's too late",
+  "Disney+ not used in 2 months — cancel now, save $168/year",
+  "Samsung TV cheaper at Costco — get $150 back via price match",
+  "Subscription audit found $54/mo in unused services",
+  "Nike order returnable — $149 still recoverable",
+  "Before you buy: get a Buy / Wait / Skip verdict in 30 seconds",
 ];
 
 const HOW_IT_WORKS = [
   {
     step: "01",
-    title: "Describe your decision",
-    body: "Set your budget, category, mood, and priorities using guided chips and sliders — not a blank text box.",
+    title: "Add your purchases",
+    body: "Snap a receipt or enter an order manually. Worthly tracks return windows, prices, and merchants automatically.",
   },
   {
     step: "02",
-    title: "Get scored options",
-    body: "Worthly returns 2–4 real products scored on fit, value, proof, and regret risk — with clear tradeoffs.",
+    title: "Get recovery opportunities",
+    body: "Worthly spots expiring return windows, unused subscriptions, and price-match opportunities — before you lose them.",
   },
   {
     step: "03",
-    title: "Act on a clear verdict",
-    body: "Buy, Wait, or Skip. With confidence score, reasoning, and direct links to the best price available.",
+    title: "Act with one tap",
+    body: "Every opportunity comes with a copy-ready email draft. Send it in seconds — no composing required.",
   },
 ];
 
@@ -462,7 +462,6 @@ function StickyHeader() {
         <nav className="hidden md:flex items-center gap-6 text-sm text-white/65">
           {[
             { href: "#features", label: "Features" },
-            { href: "#demo",     label: "Demo" },
             { href: "#examples", label: "Examples" },
             { href: "#reviews",  label: "Reviews" },
           ].map(({ href, label }) => (
@@ -485,7 +484,7 @@ function StickyHeader() {
           <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
             <Button size="sm" className="gap-1.5 rounded-full font-semibold text-white"
               style={{ background: "hsl(32 95% 54%)" }}>
-              Start deciding <ArrowRight className="w-3.5 h-3.5" />
+              Protect my money <ArrowRight className="w-3.5 h-3.5" />
             </Button>
           </motion.div>
         </Link>
@@ -504,8 +503,8 @@ export default function LandingPage() {
   useEffect(() => {
     import("@/lib/seo").then(({ applySeo }) =>
       applySeo({
-        title: "Worthly — AI Buying Decision Engine",
-        description: "Not a chatbot. A structured, personalized buying decision system. Get scored recommendations, tradeoff analysis, and a clear Buy / Wait / Skip verdict.",
+        title: "Worthly — AI Purchase Protection & Money Recovery",
+        description: "Track return windows, cancel unused subscriptions, and recover money via price matches — with AI-drafted emails ready in seconds.",
         canonical: "https://worthlyai.app/",
       })
     );
@@ -559,7 +558,7 @@ export default function LandingPage() {
                 className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-amber-300 uppercase tracking-wide"
                 style={{ background: "hsl(32 95% 54% / 0.14)", border: "1px solid hsl(32 95% 54% / 0.28)" }}
               >
-                <Sparkles className="w-3.5 h-3.5" /> AI buying decisions · free to start
+                <Shield className="w-3.5 h-3.5" /> AI purchase protection · free to start
               </span>
             </motion.div>
 
@@ -569,8 +568,8 @@ export default function LandingPage() {
               className="font-bold text-white leading-[1.08]"
               style={{ fontSize: "clamp(2.6rem, 4.5vw, 3.8rem)", letterSpacing: "-0.02em" }}
             >
-              Not a chatbot.<br />
-              <span style={{ color: "hsl(32 95% 62%)" }}>A buying decision<br />engine.</span>
+              Protect your money<br />
+              <span style={{ color: "hsl(32 95% 62%)" }}>after every<br />purchase.</span>
             </motion.h1>
 
             {/* Sub-copy */}
@@ -579,14 +578,13 @@ export default function LandingPage() {
               className="text-white/60 leading-relaxed max-w-md"
               style={{ fontSize: "1.08rem" }}
             >
-              Worthly uses a structured form — not an empty chat box — to collect your real constraints
-              and deliver a personalized <strong className="text-white/80 font-semibold">Buy / Wait / Skip</strong> verdict
-              with scored options and tradeoffs.
+              Track return windows, cancel unused subscriptions, and recover money via price matches —
+              all with <strong className="text-white/80 font-semibold">AI-drafted emails</strong> ready to send in seconds.
             </motion.p>
 
-            {/* Rotating query example */}
+            {/* Rotating value prop */}
             <motion.div variants={fadeUp} className="flex items-center gap-2">
-              <span className="text-xs text-amber-500/70 font-medium uppercase tracking-wide shrink-0">Try:</span>
+              <span className="text-xs text-amber-500/70 font-medium uppercase tracking-wide shrink-0">Latest:</span>
               <RotatingQuery />
             </motion.div>
 
@@ -602,7 +600,7 @@ export default function LandingPage() {
                       boxShadow: "0 8px 32px hsl(32 95% 54% / 0.40)",
                     }}
                   >
-                    <Sparkles className="w-4 h-4" /> Make my first decision
+                    <Shield className="w-4 h-4" /> Protect my purchases
                   </Button>
                 </motion.div>
               </Link>
@@ -627,7 +625,7 @@ export default function LandingPage() {
 
             {/* Trust micro-copy */}
             <motion.div variants={fadeUp} className="flex items-center gap-5 text-sm text-white/35">
-              {["Free forever", "No credit card", "Works instantly"].map(t => (
+              {["Free to start", "No credit card", "Works instantly"].map(t => (
                 <span key={t} className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-amber-400" /> {t}
                 </span>
@@ -739,10 +737,10 @@ export default function LandingPage() {
       {/* ── Trusted band ── */}
       <div className="bg-[hsl(38_25%_97%)] py-6 px-6 border-b border-stone-100">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-stone-400">
-          <span className="font-medium text-stone-500">Trusted by smarter buyers</span>
+          <span className="font-medium text-stone-500">Your money, defended</span>
           <div className="hidden sm:block w-px h-4 bg-stone-200" />
           <div className="flex items-center gap-6 flex-wrap justify-center">
-            {["No sponsored rankings", "Affiliate-transparent", "Regret-first scoring", "Buy · Wait · Skip"].map(t => (
+            {["Return window alerts", "Subscription audit", "Price match recovery", "AI-drafted emails"].map(t => (
               <span key={t} className="flex items-center gap-1.5">
                 <Check className="w-3.5 h-3.5 text-amber-500" /> {t}
               </span>
@@ -756,14 +754,14 @@ export default function LandingPage() {
         <DemoVideoSection />
       </div>
 
-      {/* ── Not a chatbot callout ── */}
+      {/* ── Not just an app callout ── */}
       <section className="py-16 px-6 bg-[hsl(38_25%_97%)]">
         <div className="max-w-4xl mx-auto">
           <StaggerReveal className="grid md:grid-cols-2 gap-5">
             <motion.div variants={scaleIn}
               className="bg-red-50/80 border border-red-100 rounded-2xl p-6 hover:shadow-md transition-shadow">
-              <p className="text-xs font-bold text-red-400 uppercase tracking-wide mb-4">What Worthly is NOT</p>
-              {["A blank chat box", "An open-ended AI assistant", "A ChatGPT clone", "A generic shopping chatbot"].map(t => (
+              <p className="text-xs font-bold text-red-400 uppercase tracking-wide mb-4">Money lost without Worthly</p>
+              {["Missing a 30-day return deadline", "Paying for subscriptions you never use", "Not claiming a $150 price match", "Buying wrong and having no recourse"].map(t => (
                 <div key={t} className="flex items-center gap-2 text-sm text-red-700 py-1.5">
                   <span className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-red-400 font-bold text-xs shrink-0">✗</span>
                   {t}
@@ -772,8 +770,8 @@ export default function LandingPage() {
             </motion.div>
             <motion.div variants={scaleIn}
               className="bg-emerald-50/80 border border-emerald-100 rounded-2xl p-6 hover:shadow-md transition-shadow">
-              <p className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-4">What Worthly IS</p>
-              {["Structured buying decision system", "Personalized recommendation engine", "Guided decision workflow", "Comparison platform with scores"].map(t => (
+              <p className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-4">Money protected with Worthly</p>
+              {["Return deadline tracked and alerted", "Unused subscriptions cancelled", "Price match request drafted & sent", "Buy verdict scored before you spend"].map(t => (
                 <div key={t} className="flex items-center gap-2 text-sm text-emerald-800 py-1.5">
                   <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500 font-bold text-xs shrink-0">✓</span>
                   {t}
@@ -790,7 +788,7 @@ export default function LandingPage() {
           <SectionReveal className="text-center mb-14">
             <p className="text-xs font-bold text-amber-600 uppercase tracking-widest mb-3">Features</p>
             <h2 className="font-bold text-stone-900" style={{ fontSize: "clamp(1.8rem, 3vw, 2.6rem)" }}>
-              Built different by design
+              Every dollar defended
             </h2>
           </SectionReveal>
 
@@ -819,7 +817,7 @@ export default function LandingPage() {
           <SectionReveal className="text-center mb-14">
             <p className="text-xs font-bold text-amber-600 uppercase tracking-widest mb-3">How it works</p>
             <h2 className="font-bold text-stone-900" style={{ fontSize: "clamp(1.8rem, 3vw, 2.6rem)" }}>
-              From question to confident decision
+              Track, recover, protect — in minutes
             </h2>
           </SectionReveal>
 
@@ -849,7 +847,7 @@ export default function LandingPage() {
           <SectionReveal className="text-center mb-14">
             <p className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-3">Examples</p>
             <h2 className="font-bold text-white" style={{ fontSize: "clamp(1.8rem, 3vw, 2.6rem)" }}>
-              Real queries, real verdicts
+              Real purchases, real savings
             </h2>
           </SectionReveal>
 
@@ -865,17 +863,14 @@ export default function LandingPage() {
                 <p className="text-xs font-medium text-amber-400/60 uppercase tracking-wide">{category}</p>
                 <p className="text-sm text-white/80 leading-relaxed">"{query}"</p>
                 <div className="flex items-center justify-between pt-1">
-                  <span className={`text-xs px-3 py-1 rounded-full font-semibold ${verdict === "Buy"
-                    ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
-                    : "bg-amber-500/15 text-amber-400 border border-amber-500/20"
-                  }`}>
-                    {verdict === "Buy" ? "✓" : "⏳"} {verdict}
+                  <span className="text-xs px-3 py-1 rounded-full font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+                    ✓ {verdict}
                   </span>
                   <div className="flex items-center gap-1">
                     <span className="text-2xl font-bold text-amber-400">
-                      <AnimatedScore value={score} />
+                      ${score}
                     </span>
-                    <span className="text-xs text-white/25">/100</span>
+                    <span className="text-xs text-white/25">saved</span>
                   </div>
                 </div>
               </motion.div>
@@ -887,7 +882,7 @@ export default function LandingPage() {
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="inline-block">
                 <Button className="gap-2 rounded-full font-semibold h-11 px-7"
                   style={{ background: "hsl(32 95% 54%)", color: "white" }}>
-                  Try with your own query <ChevronRight className="w-4 h-4" />
+                  Protect my purchases <ChevronRight className="w-4 h-4" />
                 </Button>
               </motion.div>
             </Link>
@@ -901,7 +896,7 @@ export default function LandingPage() {
           <SectionReveal className="text-center mb-14">
             <p className="text-xs font-bold text-amber-600 uppercase tracking-widest mb-3">Reviews</p>
             <h2 className="font-bold text-stone-900" style={{ fontSize: "clamp(1.8rem, 3vw, 2.6rem)" }}>
-              Smarter buyers, fewer regrets
+              Real money recovered
             </h2>
           </SectionReveal>
 
@@ -944,10 +939,10 @@ export default function LandingPage() {
 
         <SectionReveal className="max-w-xl mx-auto text-center space-y-6 relative">
           <h2 className="font-bold text-white leading-tight" style={{ fontSize: "clamp(1.8rem, 3.5vw, 2.8rem)" }}>
-            Ready to decide smarter?
+            Start protecting your purchases today.
           </h2>
           <p className="text-white/50 text-[1.05rem]">
-            Free to start. No credit card. Your first verdict in under 30 seconds.
+            Free to start. No credit card. See your first recovery opportunity in under 60 seconds.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
             <Link href="/app">
@@ -957,14 +952,14 @@ export default function LandingPage() {
                     background: "hsl(32 95% 54%)",
                     boxShadow: "0 8px 40px hsl(32 95% 54% / 0.45)",
                   }}>
-                  <Zap className="w-4 h-4" /> Start deciding free
+                  <Shield className="w-4 h-4" /> Protect my money free
                 </Button>
               </motion.div>
             </Link>
-            <Link href="/onboarding">
+            <Link href="/app/verdicts">
               <Button variant="outline" size="lg"
                 className="h-13 px-7 rounded-full border-white/15 text-white bg-white/5 hover:bg-white/10">
-                Set my preferences
+                <Zap className="w-4 h-4 mr-2" /> Try Buy / Wait / Skip
               </Button>
             </Link>
           </div>
