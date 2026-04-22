@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Worthly — Shopping Copilot",
+  "version": "0.1.0",
+  "description": "Get instant Buy/Wait/Skip verdicts while you shop. Save products to your Worthly dashboard.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": [
+    "https://www.amazon.com/*",
+    "https://www.target.com/*",
+    "https://www.walmart.com/*",
+    "https://*.myshopify.com/*",
+    "http://localhost:5000/*",
+    "https://worthly.ai/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.amazon.com/*/dp/*",
+        "https://www.amazon.com/dp/*",
+        "https://www.target.com/p/*",
+        "https://www.walmart.com/ip/*",
+        "https://*.myshopify.com/products/*"
+      ],
+      "js": ["content/content.js"],
+      "css": ["content/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Worthly"
+  }
+}

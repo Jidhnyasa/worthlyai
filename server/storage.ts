@@ -3,12 +3,15 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { eq, desc } from "drizzle-orm";
 import {
   queries, recommendations, savedItems, feedback, userPreferences,
+  detectedProducts, trackedPurchases,
   type Query, type InsertQuery,
   type Recommendation, type InsertRecommendation,
   type SavedItem, type InsertSavedItem,
   type InsertFeedback,
   type UserPreferences,
   type RecommendationResult,
+  type DetectedProduct, type InsertDetectedProduct,
+  type TrackedPurchase, type InsertTrackedPurchase,
 } from "@shared/schema";
 
 const client = postgres(process.env.DATABASE_URL!, { ssl: "require", max: 1 });
@@ -54,6 +57,11 @@ export interface IStorage {
   upsertPreferences(userId: string, prefs: Partial<UserPreferences>): Promise<UserPreferences>;
 
   getHistory(sessionId: string, limit?: number): Promise<Array<Query & { recommendation?: Recommendation }>>;
+
+  saveDetectedProduct(data: InsertDetectedProduct): Promise<DetectedProduct>;
+  getDetectedProducts(userId: string): Promise<DetectedProduct[]>;
+  updateDetectedProductStatus(id: string, status: string): Promise<void>;
+  deleteDetectedProduct(id: string): Promise<void>;
 }
 
 export const storage: IStorage = {
@@ -150,6 +158,30 @@ export const storage: IStorage = {
       ...prefs,
     }).returning();
     return row;
+  },
+
+  async saveDetectedProduct(data) {
+    const [row] = await db.insert(detectedProducts).values({
+      ...data,
+      updatedAt: new Date(),
+    }).returning();
+    return row;
+  },
+
+  async getDetectedProducts(userId) {
+    return db.select().from(detectedProducts)
+      .where(eq(detectedProducts.userId, userId))
+      .orderBy(desc(detectedProducts.createdAt));
+  },
+
+  async updateDetectedProductStatus(id, status) {
+    await db.update(detectedProducts)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(detectedProducts.id, id));
+  },
+
+  async deleteDetectedProduct(id) {
+    await db.delete(detectedProducts).where(eq(detectedProducts.id, id));
   },
 
   async getHistory(sessionId, limit = 15) {

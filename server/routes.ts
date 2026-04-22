@@ -140,5 +140,63 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // ── POST /api/detected-products ─────────────────────────────────────────────
+  // Called by the browser extension to save a product from a shopping page.
+  app.post("/api/detected-products", async (req, res) => {
+    const userId = req.headers["x-user-id"] as string | undefined;
+    try {
+      const product = await storage.saveDetectedProduct({
+        userId: userId ?? null,
+        title:               req.body.title,
+        merchant:            req.body.merchant,
+        productUrl:          req.body.productUrl,
+        imageUrl:            req.body.imageUrl ?? null,
+        price:               req.body.price?.toString() ?? null,
+        detectedRating:      req.body.detectedRating?.toString() ?? null,
+        detectedReviewCount: req.body.detectedReviewCount ?? null,
+        verdict:             req.body.verdict ?? "wait",
+        verdictScore:        req.body.verdictScore ?? null,
+        verdictReasonJson:   req.body.verdictReasonJson ?? [],
+        status:              "saved",
+      });
+      res.json(product);
+    } catch (err) {
+      console.error("Save detected product error:", err);
+      res.status(500).json({ error: "Failed to save product" });
+    }
+  });
+
+  // ── GET /api/detected-products ───────────────────────────────────────────────
+  app.get("/api/detected-products", async (req, res) => {
+    const userId = req.headers["x-user-id"] as string;
+    if (!userId) return res.json([]);
+    try {
+      const products = await storage.getDetectedProducts(userId);
+      res.json(products);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
+  // ── PATCH /api/detected-products/:id ────────────────────────────────────────
+  app.patch("/api/detected-products/:id", async (req, res) => {
+    try {
+      await storage.updateDetectedProductStatus(req.params.id, req.body.status);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to update product" });
+    }
+  });
+
+  // ── DELETE /api/detected-products/:id ───────────────────────────────────────
+  app.delete("/api/detected-products/:id", async (req, res) => {
+    try {
+      await storage.deleteDetectedProduct(req.params.id);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to delete product" });
+    }
+  });
+
   return httpServer;
 }

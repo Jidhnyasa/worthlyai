@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Package, CreditCard, Zap, Sparkles, Settings } from "lucide-react";
+import { LayoutDashboard, Package, CreditCard, Zap, Sparkles, Settings, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -7,6 +7,7 @@ const NAV = [
   { href: "/app/returns",        label: "Returns",       icon: Package },
   { href: "/app/subscriptions",  label: "Subscriptions", icon: CreditCard },
   { href: "/app/actions",        label: "Actions",       icon: Zap },
+  { href: "/saved",              label: "Saved",         icon: Bookmark },
   { href: "/app/verdicts",       label: "Buy/Wait/Skip", icon: Sparkles },
   { href: "/settings",           label: "Settings",      icon: Settings },
 ];

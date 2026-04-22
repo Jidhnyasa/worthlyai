@@ -1,0 +1,14 @@
+/*
+  Worthly widget — host element only.
+  All widget styles live inside the Shadow DOM (content.js STYLES constant).
+  This file is intentionally minimal to avoid polluting the page's CSS.
+*/
+
+#worthly-host {
+  /* Positioning is set inline by JS to avoid being overridden by the page. */
+  /* This rule is a no-op fallback in case the inline style is stripped. */
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 2147483647 !important;
+}

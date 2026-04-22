@@ -1,4 +1,4 @@
-import type { Purchase, Subscription, ActionItem } from "@shared/schema";
+import type { Purchase, Subscription, ActionItem, DetectedProduct } from "@shared/schema";
 
 const today = new Date("2026-04-18");
 function daysAgo(n: number): Date {
@@ -206,6 +206,79 @@ I'd appreciate any loyalty discount or promotional rate you can offer.
 
 Thank you,`,
     completed: false,
+  },
+];
+
+// ─── Mock extension-detected products ────────────────────────────────────────
+// Shown on the website when no real data is available from the API.
+export const MOCK_DETECTED_PRODUCTS: DetectedProduct[] = [
+  {
+    id: "dp1",
+    userId: null,
+    title: "Sony WH-1000XM5 Wireless Noise Canceling Headphones",
+    merchant: "Amazon",
+    productUrl: "https://www.amazon.com/dp/B09XS7JWHH",
+    imageUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80",
+    price: "279.99",
+    detectedRating: "4.6",
+    detectedReviewCount: 18423,
+    verdict: "buy",
+    verdictScore: 84,
+    verdictReasonJson: ["Strong 4.6★ customer rating", "18K+ verified reviews", "Amazon buyer protection included"],
+    status: "saved",
+    createdAt: daysAgo(2),
+    updatedAt: daysAgo(2),
+  },
+  {
+    id: "dp2",
+    userId: null,
+    title: "Vitamix A3500 Ascent Series Smart Blender",
+    merchant: "Target",
+    productUrl: "https://www.target.com/p/vitamix-a3500",
+    imageUrl: "https://images.unsplash.com/photo-1570222094114-d054a817e56b?w=400&q=80",
+    price: "649.95",
+    detectedRating: "4.8",
+    detectedReviewCount: 3241,
+    verdict: "wait",
+    verdictScore: 62,
+    verdictReasonJson: ["Outstanding 4.8★ rating", "Premium price — check for sales", "Target buyer protection included"],
+    status: "saved",
+    createdAt: daysAgo(5),
+    updatedAt: daysAgo(5),
+  },
+  {
+    id: "dp3",
+    userId: null,
+    title: "Garmin Forerunner 265 GPS Running Smartwatch",
+    merchant: "Amazon",
+    productUrl: "https://www.amazon.com/dp/B0BS2WXPX3",
+    imageUrl: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80",
+    price: "449.99",
+    detectedRating: "4.5",
+    detectedReviewCount: 7812,
+    verdict: "buy",
+    verdictScore: 79,
+    verdictReasonJson: ["Strong 4.5★ customer rating", "7K+ reviews — well tested", "Amazon buyer protection included"],
+    status: "tracking",
+    createdAt: daysAgo(10),
+    updatedAt: daysAgo(10),
+  },
+  {
+    id: "dp4",
+    userId: null,
+    title: "Ninja DZ401 Foodi 10 Quart 6-in-1 DualZone Air Fryer",
+    merchant: "Walmart",
+    productUrl: "https://www.walmart.com/ip/129876543",
+    imageUrl: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&q=80",
+    price: "179.99",
+    detectedRating: "4.7",
+    detectedReviewCount: 24500,
+    verdict: "buy",
+    verdictScore: 88,
+    verdictReasonJson: ["Outstanding 4.7★ rating", "24K+ verified reviews", "Walmart buyer protection included"],
+    status: "purchased",
+    createdAt: daysAgo(18),
+    updatedAt: daysAgo(18),
   },
 ];
 

@@ -162,6 +162,61 @@ export interface ActionItem {
   completed: boolean;
 }
 
+// ─── Detected Products (extension-saved items) ────────────────────────────────
+
+export const detectedProducts = pgTable("detected_products", {
+  id:                  uuid("id").primaryKey().defaultRandom(),
+  userId:              uuid("user_id"),
+  title:               text("title").notNull(),
+  merchant:            text("merchant").notNull(),
+  productUrl:          text("product_url").notNull(),
+  imageUrl:            text("image_url"),
+  price:               numeric("price"),
+  detectedRating:      numeric("detected_rating"),
+  detectedReviewCount: integer("detected_review_count"),
+  verdict:             text("verdict").notNull().default("wait"),
+  verdictScore:        integer("verdict_score"),
+  verdictReasonJson:   jsonb("verdict_reason_json").$type<string[]>().default([]),
+  status:              text("status").notNull().default("saved"),
+  createdAt:           timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt:           timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const insertDetectedProductSchema = createInsertSchema(detectedProducts).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertDetectedProduct = z.infer<typeof insertDetectedProductSchema>;
+export type DetectedProduct = typeof detectedProducts.$inferSelect;
+
+// ─── Tracked Purchases (from extension order confirmations) ────────────────────
+
+export const trackedPurchases = pgTable("tracked_purchases", {
+  id:            uuid("id").primaryKey().defaultRandom(),
+  userId:        uuid("user_id").notNull(),
+  savedItemId:   uuid("saved_item_id"),
+  merchant:      text("merchant").notNull(),
+  itemName:      text("item_name").notNull(),
+  orderDate:     timestamp("order_date", { withTimezone: true }),
+  purchasePrice: numeric("purchase_price"),
+  returnDeadline: timestamp("return_deadline", { withTimezone: true }),
+  status:        text("status").notNull().default("active"),
+  createdAt:     timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt:     timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const insertTrackedPurchaseSchema = createInsertSchema(trackedPurchases).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertTrackedPurchase = z.infer<typeof insertTrackedPurchaseSchema>;
+export type TrackedPurchase = typeof trackedPurchases.$inferSelect;
+
+// ─── Watch Events ─────────────────────────────────────────────────────────────
+
+export const watchEvents = pgTable("watch_events", {
+  id:           bigserial("id", { mode: "number" }).primaryKey(),
+  userId:       uuid("user_id").notNull(),
+  savedItemId:  uuid("saved_item_id").notNull(),
+  eventType:    text("event_type").notNull(),
+  eventPayload: jsonb("event_payload"),
+  createdAt:    timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 // ─── Shared Types (for AI pipeline) ───────────────────────────────────────────
 export interface ScoredProduct {
   title: string;

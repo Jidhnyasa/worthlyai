@@ -1,10 +1,14 @@
 import { useEffect } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { applySeo } from "@/lib/seo";
 import Navbar from "@/components/Navbar";
-import { getDashboardStats, MOCK_PURCHASES, MOCK_ACTIONS } from "@/lib/purchases-data";
+import { getDashboardStats, MOCK_PURCHASES, MOCK_ACTIONS, MOCK_DETECTED_PRODUCTS } from "@/lib/purchases-data";
+import { apiRequest } from "@/lib/queryClient";
+import { getSessionId } from "@/lib/session";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, RefreshCcw, CreditCard, Sparkles, ArrowRight, Clock } from "lucide-react";
+import { AlertTriangle, RefreshCcw, CreditCard, Sparkles, ArrowRight, Clock, Bookmark, ExternalLink } from "lucide-react";
+import type { DetectedProduct } from "@shared/schema";
 
 function StatCard({
   icon: Icon,
@@ -70,6 +74,20 @@ export default function DashboardPage() {
   useEffect(() => {
     applySeo({ title: "Dashboard — Worthly", noindex: true });
   }, []);
+
+  const { data: savedItems = [] } = useQuery<DetectedProduct[]>({
+    queryKey: ["/api/detected-products"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/detected-products", undefined, {
+        "x-session-id": getSessionId(),
+      });
+      return res.json();
+    },
+  });
+
+  // Fall back to demo mock data when no real saved items exist yet
+  const displaySaved = savedItems.length > 0 ? savedItems : MOCK_DETECTED_PRODUCTS;
+  const recentlySaved = displaySaved.slice(0, 4);
 
   const stats = getDashboardStats();
   const urgentPurchases = MOCK_PURCHASES
@@ -191,6 +209,69 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+
+        {/* Recently saved from browser extension */}
+        {recentlySaved.length > 0 && (
+          <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-stone-50">
+              <h2 className="font-semibold text-sm flex items-center gap-2">
+                <Bookmark className="w-3.5 h-3.5 text-amber-500" />
+                Saved from browser
+              </h2>
+              <Link href="/saved" className="text-xs text-amber-600 hover:underline font-medium">
+                See all
+              </Link>
+            </div>
+            {/* Horizontal scroll on mobile, 2-col grid on desktop */}
+            <div className="flex md:grid md:grid-cols-2 overflow-x-auto gap-0 scrollbar-none divide-stone-50 md:divide-x md:divide-y">
+              {recentlySaved.map((item) => {
+                const verdictStyles =
+                  item.verdict === "buy"  ? { badge: "text-green-700 bg-green-50 border-green-100", bar: "bg-green-400" } :
+                  item.verdict === "skip" ? { badge: "text-red-600 bg-red-50 border-red-100",       bar: "bg-red-400" } :
+                  { badge: "text-amber-700 bg-amber-50 border-amber-100", bar: "bg-amber-400" };
+
+                return (
+                  <div key={item.id}
+                    className="flex items-center gap-3 px-4 py-3.5 border-b border-stone-50 min-w-[220px] md:min-w-0 shrink-0 md:shrink"
+                  >
+                    <div className={cn("w-1 h-10 rounded-full shrink-0 hidden md:block", verdictStyles.bar)} />
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="w-10 h-10 rounded-xl object-contain border border-stone-100 bg-stone-50 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-xl bg-stone-50 border border-stone-100 shrink-0 flex items-center justify-center">
+                        <Bookmark className="w-4 h-4 text-stone-300" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate leading-tight">{item.title}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className={cn(
+                          "text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full border",
+                          verdictStyles.badge
+                        )}>
+                          {item.verdict}
+                        </span>
+                        {item.price != null && (
+                          <span className="text-[10px] font-medium text-stone-400">${Number(item.price).toFixed(0)}</span>
+                        )}
+                      </div>
+                    </div>
+                    {item.productUrl && (
+                      <a href={item.productUrl} target="_blank" rel="noopener noreferrer"
+                        className="shrink-0 p-1 rounded text-stone-300 hover:text-stone-500 transition-colors">
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Buy-Wait-Skip CTA */}
         <div
