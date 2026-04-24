@@ -3,7 +3,24 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { getRecommendation } from "./gemini";
 import { scrapeProductMeta, getUrlVerdict } from "./analyze-url";
+import { scrapeProductFromUrl } from "./scrape/product.js";
+import { getVerdictForUrl } from "./gemini-verdict.js";
 import type { QueryPayload } from "@shared/schema";
+
+// ── IP rate limiter — 3 anonymous verdicts per IP per day ────────────────────
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const rec = rateLimitMap.get(ip);
+  if (!rec || now > rec.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + 86_400_000 });
+    return true;
+  }
+  if (rec.count >= 3) return false;
+  rec.count++;
+  return true;
+}
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   // ── POST /api/query ──────────────────────────────────────────────────────
@@ -227,6 +244,97 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       res.json(verdict);
     } catch (err) {
       console.error("analyze-url error:", err);
+      res.status(500).json({ error: "Failed to analyze URL" });
+    }
+  });
+
+  // ── POST /api/verdict/url ────────────────────────────────────────────────────
+  // Full URL verdict: scrapes DOM, injects user context, rate-limits anonymous users.
+  app.post("/api/verdict/url", async (req, res) => {
+    const { url } = req.body as { url?: string };
+    if (!url || typeof url !== "string") {
+      return res.status(400).json({ error: "url is required" });
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return res.status(400).json({ error: "Invalid URL" });
+    }
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return res.status(400).json({ error: "Only http/https URLs are supported" });
+    }
+
+    const userId  = req.headers["x-user-id"] as string | undefined;
+    const sessionId = req.headers["x-session-id"] as string || "anonymous";
+
+    // Rate-limit anonymous users
+    if (!userId) {
+      const ip = (req.headers["x-forwarded-for"] as string || req.socket.remoteAddress || "unknown").split(",")[0].trim();
+      if (!checkRateLimit(ip)) {
+        return res.status(402).json({ needsSignup: true, error: "Free limit reached — 3 verdicts/day. Sign in to continue." });
+      }
+    }
+
+    try {
+      // 1. Scrape
+      const scraped = await scrapeProductFromUrl(url);
+
+      // 2. Load user context if authenticated
+      let userContext: Parameters<typeof getVerdictForUrl>[0]["userContext"];
+      if (userId) {
+        try {
+          const prefs = await storage.getPreferences(userId);
+          if (prefs) {
+            userContext = {
+              budgetStyle: prefs.lifestyleTags?.find(t => ["budget","balanced","quality","premium"].includes(t)),
+              favoriteBrands: prefs.favoriteBrands ?? [],
+              dislikedBrands: prefs.dislikedBrands ?? [],
+              goals: prefs.lifestyleTags?.filter(t => ["save_money","reduce_impulse","minimalism","quality_over_quantity"].includes(t)),
+            };
+          }
+        } catch { /* non-fatal */ }
+      }
+
+      // 3. Verdict
+      const verdict = await getVerdictForUrl({ url, scraped, userContext });
+
+      // 4. Persist (best-effort)
+      let queryId: string | undefined;
+      let recommendationId: string | undefined;
+      try {
+        const q = await storage.createQuery({ sessionId, userId, rawQuery: url, queryType: "verdict", category: verdict.category });
+        queryId = q.id;
+        const overallScore = Math.round(verdict.scores.fit * 0.35 + verdict.scores.value * 0.35 + (100 - verdict.scores.regret) * 0.30);
+        const rec = await storage.createRecommendation({
+          queryId: q.id,
+          userId,
+          result: {
+            verdict: verdict.verdict,
+            confidence: "high",
+            confidenceScore: verdict.verdictScore,
+            explanation: verdict.headline,
+            tradeoffs: verdict.reasons.map(r => `${r.label}: ${r.detail}`),
+            topChoice: {
+              title: scraped.title,
+              price: scraped.price,
+              imageUrl: scraped.imageUrl,
+              reason: verdict.headline,
+              pros: [], cons: [],
+              scores: { finalScore: verdict.verdictScore, fitScore: verdict.scores.fit, valueScore: verdict.scores.value, proofScore: verdict.scores.proof, regretScore: verdict.scores.regret },
+              offers: [],
+            },
+            alternatives: [],
+          },
+        });
+        recommendationId = rec.id;
+      } catch (dbErr) {
+        console.error("DB persistence failed (non-fatal):", dbErr);
+      }
+
+      res.json({ ...verdict, scraped, queryId, recommendationId });
+    } catch (err) {
+      console.error("/api/verdict/url error:", err);
       res.status(500).json({ error: "Failed to analyze URL" });
     }
   });
