@@ -20,7 +20,7 @@ export default function CategoryHubPage({ params }: { params?: { category?: stri
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white"
             style={{ background: "hsl(32 95% 54%)" }}
           >
-            Ask Worthly anything <ArrowRight className="w-3.5 h-3.5" />
+            Ask Worthly AI anything <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </PublicPageShell>
@@ -44,7 +44,7 @@ export default function CategoryHubPage({ params }: { params?: { category?: stri
         />
         <div className="relative max-w-4xl mx-auto">
           <nav className="text-xs text-white/30 flex items-center gap-1.5 mb-6">
-            <Link href="/" className="hover:text-white/60 transition-colors">Worthly</Link>
+            <Link href="/" className="hover:text-white/60 transition-colors">Worthly AI</Link>
             <span>/</span>
             <span className="text-white/50">{data.title}</span>
           </nav>
@@ -74,7 +74,7 @@ export default function CategoryHubPage({ params }: { params?: { category?: stri
                 style={{ background: "hsl(32 95% 54%)", boxShadow: "0 6px 28px hsl(32 95% 54% / 0.38)" }}
               >
                 <Sparkles className="w-4 h-4" />
-                Ask Worthly
+                Ask Worthly AI
               </Link>
             </div>
           </div>
@@ -87,7 +87,7 @@ export default function CategoryHubPage({ params }: { params?: { category?: stri
           <div className="flex items-baseline justify-between mb-8">
             <div>
               <h2 className="font-bold text-2xl">Top picks</h2>
-              <p className="text-muted-foreground text-sm mt-1">Scored 80+ on Worthly's decision engine</p>
+              <p className="text-muted-foreground text-sm mt-1">Scored 80+ on Worthly AI's decision engine</p>
             </div>
           </div>
 
@@ -173,7 +173,7 @@ export default function CategoryHubPage({ params }: { params?: { category?: stri
       >
         <div className="max-w-4xl mx-auto">
           <h2 className="font-bold text-white text-xl mb-2">What people are asking</h2>
-          <p className="text-white/40 text-sm mb-8">Common decisions in {data.title}. Click any to run it in Worthly.</p>
+          <p className="text-white/40 text-sm mb-8">Common decisions in {data.title}. Click any to run it in Worthly AI.</p>
 
           <div className="space-y-2">
             {data.popularQueries.map(q => (

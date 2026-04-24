@@ -225,7 +225,7 @@ function FilterTab({
 
 export default function SavedPage() {
   useEffect(() => {
-    applySeo({ title: "Saved Items — Worthly", noindex: true });
+    applySeo({ title: "Saved Items — Worthly AI", noindex: true });
   }, []);
 
   const [filter, setFilter] = useState<VerdictFilter>("all");
@@ -293,7 +293,7 @@ export default function SavedPage() {
               Saved Items
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Products analyzed by the Worthly browser extension.
+              Products analyzed by the Worthly AI browser extension.
             </p>
           </div>
           <span className="text-sm font-semibold text-stone-400 shrink-0 mt-1">
@@ -308,7 +308,7 @@ export default function SavedPage() {
             <div>
               <p className="text-xs font-semibold text-amber-700">Demo data</p>
               <p className="text-xs text-amber-600 mt-0.5">
-                Install the Worthly browser extension and save real products to see them here.
+                Install the Worthly AI browser extension and save real products to see them here.
               </p>
             </div>
           </div>
@@ -339,7 +339,7 @@ export default function SavedPage() {
             <div className="max-w-xs">
               <p className="font-semibold text-base">No saved products yet</p>
               <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-                Install the Worthly browser extension and click "Save to Worthly" on any Amazon, Target, or Walmart product page.
+                Install the Worthly AI browser extension and click "Save to Worthly" on any Amazon, Target, or Walmart product page.
               </p>
             </div>
             <a

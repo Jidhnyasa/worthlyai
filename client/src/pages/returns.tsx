@@ -96,7 +96,7 @@ export default function ReturnsPage() {
   const [filter, setFilter] = useState<ReturnStatus | "all">("all");
 
   useEffect(() => {
-    applySeo({ title: "Returns — Worthly", noindex: true });
+    applySeo({ title: "Returns — Worthly AI", noindex: true });
   }, []);
 
   const filtered = filter === "all"

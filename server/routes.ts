@@ -2,6 +2,7 @@ import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { getRecommendation } from "./gemini";
+import { scrapeProductMeta, getUrlVerdict } from "./analyze-url";
 import type { QueryPayload } from "@shared/schema";
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
@@ -195,6 +196,57 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: "Failed to delete product" });
+    }
+  });
+
+  // ── POST /api/analyze-url ────────────────────────────────────────────────────
+  // Real verdict for a product URL. Scrapes OG metadata, calls Gemini.
+  // No auth required — rate limiting handled client-side for now.
+  app.post("/api/analyze-url", async (req, res) => {
+    const { url } = req.body as { url?: string };
+    if (!url || typeof url !== "string") {
+      return res.status(400).json({ error: "url is required" });
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return res.status(400).json({ error: "Invalid URL" });
+    }
+
+    const allowedHosts = ["amazon.com", "target.com", "walmart.com", "bestbuy.com", "ebay.com", "etsy.com", "shopify.com"];
+    const isAllowed = allowedHosts.some(h => parsed.hostname.endsWith(h));
+    if (!isAllowed) {
+      // Still try — just don't restrict. Return best-effort result.
+    }
+
+    try {
+      const meta = await scrapeProductMeta(url);
+      const verdict = await getUrlVerdict(meta);
+      res.json(verdict);
+    } catch (err) {
+      console.error("analyze-url error:", err);
+      res.status(500).json({ error: "Failed to analyze URL" });
+    }
+  });
+
+  // ── POST /api/waitlist ───────────────────────────────────────────────────────
+  app.post("/api/waitlist", async (req, res) => {
+    const { email, source } = req.body as { email?: string; source?: string };
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+      return res.status(400).json({ error: "Valid email is required" });
+    }
+    try {
+      await storage.addToWaitlist({ email: email.trim().toLowerCase(), source: source ?? "extension_cta" });
+      res.json({ success: true });
+    } catch (err: any) {
+      // Unique constraint — already on waitlist
+      if (err?.code === "23505") {
+        return res.json({ success: true, already: true });
+      }
+      console.error("Waitlist error:", err);
+      res.status(500).json({ error: "Failed to join waitlist" });
     }
   });
 

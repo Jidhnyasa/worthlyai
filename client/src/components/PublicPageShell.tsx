@@ -12,7 +12,7 @@ interface Props {
 
 export default function PublicPageShell({ title, description, canonical, noindex = false, children }: Props) {
   useEffect(() => {
-    applySeo({ title: `${title} — Worthly`, description, canonical, noindex });
+    applySeo({ title: `${title} — Worthly AI`, description, canonical, noindex });
   }, [title, description, canonical, noindex]);
 
   return (
@@ -30,7 +30,7 @@ export default function PublicPageShell({ title, description, canonical, noindex
                 <path d="M15 9L17 11L19 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
               </svg>
             </div>
-            <span className="font-bold text-base tracking-tight">Worthly</span>
+            <span className="font-bold text-base tracking-tight">Worthly AI</span>
           </Link>
 
           <div className="flex items-center gap-3">
@@ -73,7 +73,7 @@ export default function PublicPageShell({ title, description, canonical, noindex
                 <path d="M3 5L6 15L9 9L12 15L15 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <span className="font-semibold text-white/60">Worthly</span>
+            <span className="font-semibold text-white/60">Worthly AI</span>
             <span className="text-white/25 ml-2">© {new Date().getFullYear()}</span>
           </div>
 

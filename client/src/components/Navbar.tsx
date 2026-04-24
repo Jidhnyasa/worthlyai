@@ -1,22 +1,32 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Package, CreditCard, Zap, Sparkles, Settings, Bookmark } from "lucide-react";
+import { Search, Package, CreditCard, Zap, Sparkles, Settings, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { href: "/app",                label: "Dashboard",     icon: LayoutDashboard },
+const APP_NAV = [
+  { href: "/app",                label: "Analyze",       icon: Search },
   { href: "/app/returns",        label: "Returns",       icon: Package },
   { href: "/app/subscriptions",  label: "Subscriptions", icon: CreditCard },
   { href: "/app/actions",        label: "Actions",       icon: Zap },
   { href: "/saved",              label: "Saved",         icon: Bookmark },
-  { href: "/app/verdicts",       label: "Buy/Wait/Skip", icon: Sparkles },
+  { href: "/app/verdicts",       label: "Ask Worthly AI",   icon: Sparkles },
   { href: "/settings",           label: "Settings",      icon: Settings },
+];
+
+const LANDING_NAV = [
+  { href: "/#outcomes", label: "Use cases" },
+  { href: "/#how",      label: "How it works" },
+  { href: "/#pricing",  label: "Pricing" },
+  { href: "/app",       label: "Demo" },
 ];
 
 export default function Navbar() {
   const [location] = useLocation();
+  const isAppPage = location.startsWith("/app") || location.startsWith("/saved") || location.startsWith("/settings");
+  const nav = isAppPage ? APP_NAV : LANDING_NAV;
 
   function isActive(href: string) {
     if (href === "/app") return location === "/app";
+    if (href.startsWith("/#")) return false;
     return location.startsWith(href);
   }
 
@@ -31,57 +41,65 @@ export default function Navbar() {
               <path d="M15 9L17 11L19 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"/>
             </svg>
           </div>
-          <span className="font-bold text-base tracking-tight">Worthly</span>
+          <span className="font-bold text-base tracking-tight">Worthly AI</span>
         </Link>
 
-        {/* Nav links */}
+        {/* Nav links (desktop) */}
         <nav className="hidden md:flex items-center gap-0.5">
-          {NAV.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
-                isActive(href)
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-              )}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {label}
-            </Link>
-          ))}
+          {nav.map((item) => {
+            const linkClass = cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
+              isActive(item.href) ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+            );
+            if ("icon" in item) {
+              const Icon = item.icon as React.FC<{ className?: string }>;
+              return (
+                <Link key={item.href} href={item.href} className={linkClass}>
+                  <Icon className="w-3.5 h-3.5" />
+                  {item.label}
+                </Link>
+              );
+            }
+            return (
+              <a key={item.href} href={item.href} className={linkClass}>
+                {item.label}
+              </a>
+            );
+          })}
         </nav>
 
-        {/* Mobile: logo CTA */}
+        {/* Primary CTA (always visible) */}
         <Link
           href="/app"
-          className="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-white"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-white"
           style={{ background: "hsl(32 95% 54%)" }}
         >
-          <LayoutDashboard className="w-3.5 h-3.5" />
-          Dashboard
+          <Sparkles className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Try Worthly AI</span>
+          <span className="sm:hidden">Try</span>
         </Link>
       </div>
 
-      {/* Mobile bottom nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
-        <div className="flex">
-          {NAV.slice(0, 5).map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors",
-                isActive(href) ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              <Icon className="w-4 h-4" />
-              {label.split("/")[0]}
-            </Link>
-          ))}
+      {/* Mobile bottom nav — only on app pages */}
+      {isAppPage && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
+          <div className="flex">
+            {APP_NAV.slice(0, 5).map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors",
+                  isActive(href) ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {label.split("/")[0]}
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </header>
   );
 }

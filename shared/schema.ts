@@ -260,6 +260,19 @@ export interface RecommendationResult {
   alternatives: ScoredProduct[];
 }
 
+// ─── Waitlist ──────────────────────────────────────────────────────────────────
+
+export const waitlist = pgTable("waitlist", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  email:     text("email").notNull().unique(),
+  source:    text("source").default("extension_cta"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export type WaitlistEntry = typeof waitlist.$inferSelect;
+
+// ─── Shared Types (for AI pipeline) ───────────────────────────────────────────
+
 export interface QueryPayload {
   message: string;
   category?: string;

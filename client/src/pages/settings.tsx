@@ -162,7 +162,7 @@ export default function SettingsPage() {
             <Puzzle className="w-4 h-4 text-primary" /> Browser Extension
           </h2>
           <p className="text-xs text-muted-foreground">
-            Connect the Worthly Chrome extension to your account. Copy your Session ID below and paste it into the extension popup.
+            Connect the Worthly AI Chrome extension to your account. Copy your Session ID below and paste it into the extension popup.
           </p>
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your Session ID</label>
@@ -187,7 +187,7 @@ export default function SettingsPage() {
             <p className="font-semibold text-stone-600">How to connect:</p>
             <ol className="space-y-0.5 list-decimal list-inside text-stone-500">
               <li>Load the extension from <code className="bg-stone-100 px-1 rounded">extension/</code> folder in Chrome</li>
-              <li>Click the Worthly icon in your toolbar</li>
+              <li>Click the Worthly AI icon in your toolbar</li>
               <li>Paste this Session ID and click Connect</li>
             </ol>
           </div>

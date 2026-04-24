@@ -20,7 +20,7 @@ function ScoreCell({ value }: { value: number }) {
 }
 
 const SCORE_COLS = [
-  { key: "final" as const,  label: "Score",  description: "Overall Worthly score" },
+  { key: "final" as const,  label: "Score",  description: "Overall Worthly AI score" },
   { key: "fit" as const,    label: "Fit",    description: "Fit for most users" },
   { key: "value" as const,  label: "Value",  description: "Price-to-quality ratio" },
   { key: "proof" as const,  label: "Proof",  description: "Real-world validation" },
@@ -62,7 +62,7 @@ export default function CompareSlugPage() {
       >
         <div className="max-w-4xl mx-auto text-center space-y-5">
           <nav className="text-xs text-white/30 flex items-center justify-center gap-1.5 mb-2">
-            <Link href="/" className="hover:text-white/60 transition-colors">Worthly</Link>
+            <Link href="/" className="hover:text-white/60 transition-colors">Worthly AI</Link>
             <span>/</span>
             <Link href="/compare" className="hover:text-white/60 transition-colors">Compare</Link>
             <span>/</span>
@@ -73,7 +73,7 @@ export default function CompareSlugPage() {
             className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
             style={{ background: "hsl(32 95% 54% / 0.14)", border: "1px solid hsl(32 95% 54% / 0.28)", color: "hsl(32 95% 65%)" }}
           >
-            Worthly Comparison
+            Worthly AI Comparison
           </div>
 
           <h1
@@ -100,7 +100,7 @@ export default function CompareSlugPage() {
               <Trophy className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-amber-600 mb-0.5">Worthly's top pick</p>
+              <p className="text-xs font-semibold text-amber-600 mb-0.5">Worthly AI's top pick</p>
               <p className="font-bold text-base truncate">{winner.title}</p>
               <p className="text-xs text-muted-foreground">{data.winnerReason}</p>
             </div>

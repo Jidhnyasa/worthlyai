@@ -37,7 +37,7 @@ export default function VerdictSlugPage() {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white"
             style={{ background: "hsl(32 95% 54%)" }}
           >
-            Ask Worthly about it <ArrowRight className="w-3.5 h-3.5" />
+            Ask Worthly AI about it <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </PublicPageShell>
@@ -50,7 +50,7 @@ export default function VerdictSlugPage() {
   return (
     <PublicPageShell
       title={`Is the ${data.productTitle} Worth It?`}
-      description={`Worthly's AI verdict on the ${data.productTitle}: ${data.verdict.toUpperCase()}. Confidence ${data.confidenceScore}/100. ${data.explanation.slice(0, 120)}…`}
+      description={`Worthly AI's AI verdict on the ${data.productTitle}: ${data.verdict.toUpperCase()}. Confidence ${data.confidenceScore}/100. ${data.explanation.slice(0, 120)}…`}
       canonical={`https://worthlyai.app/verdict/${data.slug}`}
     >
       {/* ── Hero ── */}
@@ -61,7 +61,7 @@ export default function VerdictSlugPage() {
         <div className="max-w-4xl mx-auto">
           {/* Breadcrumb */}
           <nav className="text-xs text-white/30 mb-6 flex items-center gap-1.5">
-            <Link href="/" className="hover:text-white/60 transition-colors">Worthly</Link>
+            <Link href="/" className="hover:text-white/60 transition-colors">Worthly AI</Link>
             <span>/</span>
             <Link href={`/${data.category}`} className="hover:text-white/60 transition-colors capitalize">{data.category.replace("-", " ")}</Link>
             <span>/</span>
@@ -81,7 +81,7 @@ export default function VerdictSlugPage() {
               <div className="flex items-center gap-4">
                 <div className="text-center">
                   <div className="text-4xl font-bold text-amber-400">{data.confidenceScore}</div>
-                  <div className="text-xs text-white/35 mt-0.5">Worthly Score</div>
+                  <div className="text-xs text-white/35 mt-0.5">Worthly AI Score</div>
                 </div>
                 <div className="h-10 w-px bg-white/10" />
                 <div className="text-center">
@@ -228,7 +228,7 @@ export default function VerdictSlugPage() {
 
       <DiscoveryCTA
         headline={`Not sure if ${data.productTitle} is right for you?`}
-        subline="Tell Worthly your budget, use case, and priorities. Get a personalised score in 30 seconds."
+        subline="Tell Worthly AI your budget, use case, and priorities. Get a personalised score in 30 seconds."
         ctaLabel="Get my verdict →"
       />
     </PublicPageShell>

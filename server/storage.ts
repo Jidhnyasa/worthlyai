@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { eq, desc } from "drizzle-orm";
 import {
   queries, recommendations, savedItems, feedback, userPreferences,
-  detectedProducts, trackedPurchases,
+  detectedProducts, trackedPurchases, waitlist,
   type Query, type InsertQuery,
   type Recommendation, type InsertRecommendation,
   type SavedItem, type InsertSavedItem,
@@ -12,6 +12,7 @@ import {
   type RecommendationResult,
   type DetectedProduct, type InsertDetectedProduct,
   type TrackedPurchase, type InsertTrackedPurchase,
+  type WaitlistEntry,
 } from "@shared/schema";
 
 const client = postgres(process.env.DATABASE_URL!, { ssl: "require", max: 1 });
@@ -62,6 +63,8 @@ export interface IStorage {
   getDetectedProducts(userId: string): Promise<DetectedProduct[]>;
   updateDetectedProductStatus(id: string, status: string): Promise<void>;
   deleteDetectedProduct(id: string): Promise<void>;
+
+  addToWaitlist(data: { email: string; source: string }): Promise<WaitlistEntry>;
 }
 
 export const storage: IStorage = {
@@ -182,6 +185,11 @@ export const storage: IStorage = {
 
   async deleteDetectedProduct(id) {
     await db.delete(detectedProducts).where(eq(detectedProducts.id, id));
+  },
+
+  async addToWaitlist({ email, source }) {
+    const [row] = await db.insert(waitlist).values({ email, source }).returning();
+    return row;
   },
 
   async getHistory(sessionId, limit = 15) {

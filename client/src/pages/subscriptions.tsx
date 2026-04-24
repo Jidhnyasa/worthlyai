@@ -84,7 +84,7 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
 
 export default function SubscriptionsPage() {
   useEffect(() => {
-    applySeo({ title: "Subscriptions — Worthly", noindex: true });
+    applySeo({ title: "Subscriptions — Worthly AI", noindex: true });
   }, []);
 
   const flagged  = MOCK_SUBSCRIPTIONS.filter(s => s.usageFlag);

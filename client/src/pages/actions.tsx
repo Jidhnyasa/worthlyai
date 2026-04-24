@@ -145,7 +145,7 @@ function ActionCard({ action }: { action: ActionItem }) {
 
 export default function ActionsPage() {
   useEffect(() => {
-    applySeo({ title: "Actions — Worthly", noindex: true });
+    applySeo({ title: "Actions — Worthly AI", noindex: true });
   }, []);
 
   const pending = MOCK_ACTIONS.filter(a => !a.completed);

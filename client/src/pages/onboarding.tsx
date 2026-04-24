@@ -98,7 +98,7 @@ export default function OnboardingPage() {
               <path d="M3 5L6 15L9 9L12 15L15 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span className="font-bold text-base">Worthly</span>
+          <span className="font-bold text-base">Worthly AI</span>
           <span className="ml-auto text-xs text-muted-foreground">{step + 1} / {total}</span>
         </div>
         <Progress value={progress} className="h-1.5" />

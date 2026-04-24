@@ -66,7 +66,7 @@ export default function ComparePage() {
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         <div>
           <h1 className="font-bold text-lg">Compare Products</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Enter products to compare side by side with Worthly scoring</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Enter products to compare side by side with Worthly AI scoring</p>
         </div>
 
         {/* Input panel */}
@@ -132,7 +132,7 @@ export default function ComparePage() {
                   <Trophy className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-amber-600 mb-0.5">Worthly's top pick</p>
+                  <p className="text-xs font-semibold text-amber-600 mb-0.5">Worthly AI's top pick</p>
                   <p className="font-bold text-base">{winner.title}</p>
                   <p className="text-xs text-muted-foreground">{winner.reason}</p>
                 </div>

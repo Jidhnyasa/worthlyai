@@ -380,7 +380,7 @@ export default function RecommendationCanvas({ result, queryId, recommendationId
             </button>
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground text-center">Thanks for your feedback — it helps Worthly improve.</p>
+          <p className="text-xs text-muted-foreground text-center">Thanks for your feedback — it helps Worthly AI improve.</p>
         )}
       </div>
     </div>
