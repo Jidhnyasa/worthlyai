@@ -15,6 +15,7 @@ import SubscriptionsPage  from "@/pages/subscriptions";
 import ActionsPage        from "@/pages/actions";
 
 // App utilities
+import MinePage       from "@/pages/mine";
 import OnboardingPage from "@/pages/onboarding";
 import ComparePage    from "@/pages/compare";
 import SavedPage      from "@/pages/saved";
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="/app/subscriptions" component={SubscriptionsPage} />
         <Route path="/app/actions"       component={ActionsPage} />
         <Route path="/app/verdicts"      component={VerdictsPage} />
+        <Route path="/app/mine"          component={MinePage} />
 
         {/* ── App utilities ── */}
         <Route path="/onboarding" component={OnboardingPage} />
