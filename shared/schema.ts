@@ -271,6 +271,29 @@ export const waitlist = pgTable("waitlist", {
 
 export type WaitlistEntry = typeof waitlist.$inferSelect;
 
+// ─── Chat ─────────────────────────────────────────────────────────────────────
+
+export const chatThreads = pgTable("chat_threads", {
+  id:            uuid("id").primaryKey().defaultRandom(),
+  userId:        uuid("user_id"),
+  sessionId:     text("session_id"),
+  contextType:   text("context_type").notNull().default("verdict"),
+  contextId:     text("context_id"),           // recommendationId or queryId
+  lastMessageAt: timestamp("last_message_at", { withTimezone: true }).defaultNow(),
+  createdAt:     timestamp("created_at",       { withTimezone: true }).defaultNow(),
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  threadId:  uuid("thread_id").notNull(),
+  role:      text("role").notNull(),           // "user" | "assistant"
+  content:   text("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export type ChatThread  = typeof chatThreads.$inferSelect;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+
 // ─── Shared Types (for AI pipeline) ───────────────────────────────────────────
 
 export interface QueryPayload {

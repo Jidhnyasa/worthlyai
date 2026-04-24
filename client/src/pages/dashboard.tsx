@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { applySeo } from "@/lib/seo";
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   Sparkles, Bookmark, ExternalLink, Star, Shield, TrendingUp, Clock,
   Zap, ShoppingBag, RotateCcw, Search, AlertTriangle, ChevronRight,
-  DollarSign, Clock4, FileText,
+  DollarSign, Clock4, FileText, MessageSquare, Send,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -111,6 +111,137 @@ const VERDICT_CONFIG = {
     sub: "Not recommended — save your money",
   },
 } as const;
+
+// ─── Chat component ───────────────────────────────────────────────────────────
+
+const CHAT_CHIPS = ["Why skip?", "Show cheaper alternatives", "What if I wait?", "Is this a dupe of something I own?"];
+
+type ChatMsg = { role: "user" | "assistant"; text: string };
+
+function VerdictChat({ verdictContext }: { verdictContext: string }) {
+  const [open, setOpen]         = useState(false);
+  const [input, setInput]       = useState("");
+  const [msgs, setMsgs]         = useState<ChatMsg[]>([]);
+  const [streaming, setStreaming] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [msgs, streaming]);
+
+  const sendMessage = useCallback(async (text: string) => {
+    if (!text.trim() || streaming) return;
+    const userMsg: ChatMsg = { role: "user", text: text.trim() };
+    setMsgs(prev => [...prev, userMsg]);
+    setInput("");
+    setStreaming(true);
+
+    const history = msgs.map(m => ({
+      role: m.role === "user" ? "user" as const : "model" as const,
+      parts: [{ text: m.text }],
+    }));
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-session-id": getSessionId() },
+        body: JSON.stringify({ message: text.trim(), verdictContext, history }),
+      });
+      if (!res.body) throw new Error("No stream");
+
+      let accumulated = "";
+      setMsgs(prev => [...prev, { role: "assistant", text: "" }]);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        accumulated += decoder.decode(value, { stream: true });
+        setMsgs(prev => {
+          const next = [...prev];
+          next[next.length - 1] = { role: "assistant", text: accumulated };
+          return next;
+        });
+      }
+    } catch {
+      setMsgs(prev => [...prev, { role: "assistant", text: "Sorry — couldn't reach the server. Try again." }]);
+    }
+    setStreaming(false);
+  }, [msgs, streaming, verdictContext]);
+
+  return (
+    <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2.5 px-5 py-4 hover:bg-stone-50 transition-colors"
+      >
+        <MessageSquare className="w-4 h-4 text-amber-500" />
+        <span className="text-sm font-semibold text-stone-700">Ask about this verdict</span>
+        <span className="ml-auto text-stone-300 text-xs">{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <div className="border-t border-stone-50">
+          {/* Suggestion chips */}
+          {msgs.length === 0 && (
+            <div className="flex flex-wrap gap-2 px-5 py-3">
+              {CHAT_CHIPS.map(chip => (
+                <button
+                  key={chip}
+                  onClick={() => sendMessage(chip)}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium text-stone-600 bg-stone-100 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 border border-stone-200 transition-all"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Messages */}
+          {msgs.length > 0 && (
+            <div className="px-5 py-3 space-y-3 max-h-72 overflow-y-auto">
+              {msgs.map((m, i) => (
+                <div key={i} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>
+                  <div className={cn(
+                    "max-w-[85%] px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed",
+                    m.role === "user"
+                      ? "text-white rounded-br-sm"
+                      : "bg-stone-50 text-stone-700 border border-stone-100 rounded-bl-sm"
+                  )} style={m.role === "user" ? { background: "hsl(32 95% 54%)" } : undefined}>
+                    {m.text || (streaming && i === msgs.length - 1 ? <span className="animate-pulse">…</span> : "")}
+                  </div>
+                </div>
+              ))}
+              <div ref={bottomRef} />
+            </div>
+          )}
+
+          {/* Input */}
+          <div className="flex gap-2 px-5 py-3 border-t border-stone-50">
+            <input
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage(input)}
+              placeholder="Ask anything about this product…"
+              className="flex-1 px-3.5 py-2.5 text-xs rounded-xl border border-stone-200 bg-stone-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 transition-all placeholder:text-stone-400"
+              disabled={streaming}
+            />
+            <button
+              onClick={() => sendMessage(input)}
+              disabled={!input.trim() || streaming}
+              className="flex items-center justify-center w-10 h-10 rounded-xl text-white disabled:opacity-40 transition-all hover:brightness-110"
+              style={{ background: "hsl(32 95% 54%)" }}
+            >
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Score ring ───────────────────────────────────────────────────────────────
 
@@ -701,6 +832,7 @@ export default function DashboardPage() {
               saved={isSaved}
               isSaving={saveMutation.isPending}
             />
+            <VerdictChat verdictContext={JSON.stringify({ verdict: verdict.verdict, headline: verdict.headline, reasons: verdict.reasons, scores: verdict.scores, scraped: verdict.scraped })} />
           </section>
         )}
 

@@ -5,7 +5,15 @@ import { getRecommendation } from "./gemini";
 import { scrapeProductMeta, getUrlVerdict } from "./analyze-url";
 import { scrapeProductFromUrl } from "./scrape/product.js";
 import { getVerdictForUrl } from "./gemini-verdict.js";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { QueryPayload } from "@shared/schema";
+
+const chatAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+
+const CHAT_SYSTEM = `You are Worthly — an AI purchase advisor paid by the user, not the seller.
+Keep answers to 2-4 sentences unless the user asks for more.
+If verdict JSON is provided in the context, use it directly — do not re-derive it.
+Be specific, honest, and concise. If something is a bad deal, say so plainly.`;
 
 // ── IP rate limiter — 3 anonymous verdicts per IP per day ────────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -336,6 +344,51 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (err) {
       console.error("/api/verdict/url error:", err);
       res.status(500).json({ error: "Failed to analyze URL" });
+    }
+  });
+
+  // ── POST /api/chat ──────────────────────────────────────────────────────────
+  // Streaming chat anchored to a verdict. Body: { message, verdictContext?, history? }
+  app.post("/api/chat", async (req, res) => {
+    const { message, verdictContext, history = [] } = req.body as {
+      message: string;
+      verdictContext?: string;   // JSON string of VerdictOutput + scraped
+      history?: Array<{ role: "user" | "model"; parts: Array<{ text: string }> }>;
+    };
+
+    if (!message || typeof message !== "string") {
+      return res.status(400).json({ error: "message is required" });
+    }
+
+    const systemContext = verdictContext
+      ? `${CHAT_SYSTEM}\n\nVERDICT CONTEXT:\n${verdictContext}`
+      : CHAT_SYSTEM;
+
+    try {
+      const model = chatAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const chat  = model.startChat({
+        history: [
+          { role: "user",  parts: [{ text: systemContext }] },
+          { role: "model", parts: [{ text: "Understood. I'm ready to help with purchase decisions." }] },
+          ...history,
+        ],
+        generationConfig: { temperature: 0.4, maxOutputTokens: 512 },
+      });
+
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader("Transfer-Encoding", "chunked");
+      res.setHeader("Cache-Control", "no-cache");
+
+      const stream = await chat.sendMessageStream(message);
+      for await (const chunk of stream.stream) {
+        const text = chunk.text();
+        if (text) res.write(text);
+      }
+      res.end();
+    } catch (err) {
+      console.error("/api/chat error:", err);
+      if (!res.headersSent) res.status(500).json({ error: "Chat failed" });
+      else res.end();
     }
   });
 
