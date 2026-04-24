@@ -59,14 +59,15 @@ async function buildAll() {
     logLevel: "info",
   });
 
-  // Vercel serverless entry (exports Express app, no listen)
-  console.log("building vercel bundle...");
+  // Vercel serverless entry — compiled directly into api/server.js
+  // so Vercel picks it up as a committed serverless function.
+  console.log("building vercel serverless handler...");
   await esbuild({
-    entryPoints: ["server/app.ts"],
+    entryPoints: ["server/vercel-handler.ts"],
     platform: "node",
     bundle: true,
     format: "cjs",
-    outfile: "dist/app.cjs",
+    outfile: "api/server.cjs",
     define: {
       "process.env.NODE_ENV": '"production"',
     },
