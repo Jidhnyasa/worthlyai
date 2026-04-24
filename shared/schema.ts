@@ -75,6 +75,7 @@ export const userPreferences = pgTable("user_preferences", {
   preferredSizes:      jsonb("preferred_sizes").$type<Record<string, string>>().default({}),
   skinHairProfile:     jsonb("skin_hair_profile"),
   lifestyleTags:       jsonb("lifestyle_tags").$type<string[]>().default([]),
+  sensitiveTo:         jsonb("sensitive_to").$type<string[]>().default([]),
   occasionPreferences: jsonb("occasion_preferences").$type<string[]>().default([]),
   moodPreferences:     jsonb("mood_preferences").$type<string[]>().default([]),
   updatedAt:           timestamp("updated_at", { withTimezone: true }).defaultNow(),
