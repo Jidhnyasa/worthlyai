@@ -1,15 +1,11 @@
 import { Link, useLocation } from "wouter";
-import { Search, Package, CreditCard, Zap, Sparkles, Settings, Bookmark } from "lucide-react";
+import { Search, Package, Sparkles, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const APP_NAV = [
-  { href: "/app",                label: "Analyze",       icon: Search },
-  { href: "/app/returns",        label: "Returns",       icon: Package },
-  { href: "/app/subscriptions",  label: "Subscriptions", icon: CreditCard },
-  { href: "/app/actions",        label: "Actions",       icon: Zap },
-  { href: "/saved",              label: "Saved",         icon: Bookmark },
-  { href: "/app/verdicts",       label: "Ask Worthly AI",   icon: Sparkles },
-  { href: "/settings",           label: "Settings",      icon: Settings },
+  { href: "/app",      label: "Analyze",  icon: Search   },
+  { href: "/app/mine", label: "Mine",     icon: Package  },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 const LANDING_NAV = [
