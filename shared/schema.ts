@@ -295,6 +295,53 @@ export const chatMessages = pgTable("chat_messages", {
 export type ChatThread  = typeof chatThreads.$inferSelect;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 
+// ─── Tracked Subscriptions ────────────────────────────────────────────────────
+
+export const trackedSubscriptions = pgTable("tracked_subscriptions", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  userId:       uuid("user_id"),
+  sessionId:    text("session_id"),
+  name:         text("name").notNull(),
+  category:     text("category"),
+  monthlyPrice: numeric("monthly_price", { precision: 10, scale: 2 }),
+  billingCycle: text("billing_cycle").default("monthly"),
+  renewalDate:  timestamp("renewal_date", { withTimezone: true }),
+  lastUsedAt:   timestamp("last_used_at", { withTimezone: true }),
+  status:       text("status").default("active"),
+  flag:         text("flag"),
+  source:       text("source").default("manual"),
+  createdAt:    timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export type TrackedSubscription = typeof trackedSubscriptions.$inferSelect;
+
+// ─── Price Watches ─────────────────────────────────────────────────────────────
+
+export const priceWatches = pgTable("price_watches", {
+  id:               uuid("id").primaryKey().defaultRandom(),
+  userId:           uuid("user_id"),
+  sessionId:        text("session_id"),
+  recommendationId: uuid("recommendation_id"),
+  productUrl:       text("product_url").notNull(),
+  productTitle:     text("product_title"),
+  lastKnownPrice:   numeric("last_known_price", { precision: 10, scale: 2 }),
+  targetPrice:      numeric("target_price", { precision: 10, scale: 2 }),
+  createdAt:        timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export type PriceWatch = typeof priceWatches.$inferSelect;
+
+// ─── Price History ────────────────────────────────────────────────────────────
+
+export const priceHistory = pgTable("price_history", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  priceWatchId: uuid("price_watch_id").notNull(),
+  price:        numeric("price", { precision: 10, scale: 2 }).notNull(),
+  checkedAt:    timestamp("checked_at", { withTimezone: true }).defaultNow(),
+});
+
+export type PriceHistory = typeof priceHistory.$inferSelect;
+
 // ─── Shared Types (for AI pipeline) ───────────────────────────────────────────
 
 export interface QueryPayload {
