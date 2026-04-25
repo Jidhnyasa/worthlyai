@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import {
   Sparkles, Bookmark, ExternalLink, Star, Shield, TrendingUp, Clock,
   Zap, ShoppingBag, RotateCcw, Search, AlertTriangle, ChevronRight,
-  DollarSign, Clock4, MessageSquare, Send,
+  DollarSign, Clock4, FileText, MessageSquare, Send,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -311,6 +311,7 @@ function VerdictCard({
   onReset,
   saved = false,
   isSaving = false,
+  onAction,
 }: {
   result: VerdictResult;
   sourceUrl: string;
@@ -318,6 +319,7 @@ function VerdictCard({
   onReset: () => void;
   saved?: boolean;
   isSaving?: boolean;
+  onAction?: (action: "watch" | "bought" | "skipped" | "regret") => void;
 }) {
   const cfg = VERDICT_CONFIG[result.verdict];
 
@@ -485,26 +487,67 @@ function VerdictCard({
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-2 pt-1">
-          <button
-            onClick={onSave}
-            disabled={saved || isSaving}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98]",
-              saved ? "bg-emerald-500 cursor-default" : isSaving ? "opacity-70 cursor-not-allowed" : "hover:brightness-110"
-            )}
-            style={saved || isSaving ? undefined : { background: "hsl(32 95% 54%)" }}
-          >
-            <Bookmark className="w-4 h-4" />
-            {saved ? "Saved!" : isSaving ? "Saving…" : "Save to Worthly AI"}
-          </button>
-          <button
-            onClick={onReset}
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 transition-colors"
-          >
-            <RotateCcw className="w-3.5 h-3.5" /> New analysis
-          </button>
+        {/* Action strip */}
+        <div className="border-t border-stone-50 pt-3 space-y-2">
+          {result.verdict === "buy" && (
+            <div className="flex gap-2">
+              <button onClick={() => onAction?.("watch")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 transition-colors">
+                <TrendingUp className="w-3.5 h-3.5" /> Watch price
+              </button>
+              <button onClick={() => onAction?.("bought")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-white transition-all hover:brightness-110" style={{ background: "hsl(142 60% 45%)" }}>
+                <Shield className="w-3.5 h-3.5" /> I bought it
+              </button>
+              <button onClick={() => onAction?.("skipped")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-stone-500 bg-stone-50 hover:bg-stone-100 border border-stone-100 transition-colors">
+                Skip
+              </button>
+            </div>
+          )}
+          {result.verdict === "wait" && (
+            <div className="flex gap-2">
+              <button onClick={() => onAction?.("watch")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 transition-colors">
+                <TrendingUp className="w-3.5 h-3.5" /> Watch price
+              </button>
+              <button onClick={() => onAction?.("watch")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-white transition-all hover:brightness-110" style={{ background: "hsl(32 95% 54%)" }}>
+                <Clock className="w-3.5 h-3.5" /> Remind me
+              </button>
+              <button onClick={() => onAction?.("skipped")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-stone-500 bg-stone-50 hover:bg-stone-100 border border-stone-100 transition-colors">
+                Skip
+              </button>
+            </div>
+          )}
+          {result.verdict === "skip" && (
+            <div className="flex gap-2">
+              <button onClick={() => onAction?.("skipped")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-white transition-all hover:brightness-110" style={{ background: "hsl(32 95% 54%)" }}>
+                I skipped it
+              </button>
+              <button onClick={() => onAction?.("bought")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 transition-colors">
+                Actually bought
+              </button>
+              <button onClick={() => onAction?.("watch")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-stone-500 bg-stone-50 hover:bg-stone-100 border border-stone-100 transition-colors">
+                <TrendingUp className="w-3.5 h-3.5" /> Watch
+              </button>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={onSave}
+              disabled={saved || isSaving}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-white transition-all active:scale-[0.98]",
+                saved ? "bg-emerald-500 cursor-default" : isSaving ? "opacity-70 cursor-not-allowed" : "hover:brightness-110"
+              )}
+              style={saved || isSaving ? undefined : { background: "hsl(32 95% 54%)" }}
+            >
+              <Bookmark className="w-3.5 h-3.5" />
+              {saved ? "Saved!" : isSaving ? "Saving…" : "Save"}
+            </button>
+            <button
+              onClick={onReset}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> New
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -619,6 +662,29 @@ export default function DashboardPage() {
     setUrl("");
     setIsSaved(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function handleAction(action: "watch" | "bought" | "skipped" | "regret") {
+    if (!verdict) return;
+    const headers = { "x-session-id": getSessionId() };
+    if (action === "watch") {
+      await apiRequest("POST", "/api/detected-products", {
+        title: verdict.scraped.title,
+        merchant: verdict.scraped.merchant ?? "Online Store",
+        productUrl: url.startsWith("http") ? url : undefined,
+        imageUrl: verdict.scraped.imageUrl ?? null,
+        price: verdict.scraped.price != null ? String(verdict.scraped.price) : null,
+        verdict: verdict.verdict,
+        verdictScore: verdict.verdictScore,
+        status: "watching",
+      }, headers);
+    } else {
+      const outcomeMap = { bought: "bought", skipped: "skipped", regret: "regret" } as const;
+      await apiRequest("POST", "/api/feedback", {
+        outcome: outcomeMap[action],
+        sessionId: getSessionId(),
+      }, headers);
+    }
   }
 
   return (
@@ -748,6 +814,7 @@ export default function DashboardPage() {
               onReset={handleReset}
               saved={isSaved}
               isSaving={saveMutation.isPending}
+              onAction={handleAction}
             />
             <VerdictChat verdictContext={JSON.stringify({ verdict: verdict.verdict, headline: verdict.headline, reasons: verdict.reasons, scores: verdict.scores, scraped: verdict.scraped })} />
           </section>
