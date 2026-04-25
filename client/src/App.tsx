@@ -7,6 +7,7 @@ import HashCompatRedirect from "@/components/HashCompatRedirect";
 // Public / marketing
 import LandingPage    from "@/pages/landing";
 import NotFound       from "@/pages/not-found";
+import AuthPage       from "@/pages/auth";
 
 // App core (purchase protection)
 import DashboardPage      from "@/pages/dashboard";
@@ -37,6 +38,7 @@ export default function App() {
       <Switch>
         {/* ── Marketing ── */}
         <Route path="/" component={LandingPage} />
+        <Route path="/auth" component={AuthPage} />
 
         {/* ── App: purchase protection ── */}
         <Route path="/app"               component={DashboardPage} />

@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { applySeo } from "@/lib/seo";
-import { Settings, Check, AlertCircle, Key } from "lucide-react";
+import { Settings, Check, AlertCircle, Key, LogOut, User } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { getSessionId } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
+import type { SupabaseUser } from "@/lib/supabase";
 
 const CATEGORIES    = ["fashion","beauty","electronics","home","baby","fitness","gifting","accessories"];
 const BUDGET_STYLES = [
@@ -66,6 +69,21 @@ export default function SettingsPage() {
 
   const { toast } = useToast();
   const qc = useQueryClient();
+  const [, navigate] = useLocation();
+  const [user, setUser] = useState<SupabaseUser>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    navigate("/", { replace: true });
+  }
 
   const { data: prefs } = useQuery({
     queryKey: ["/api/preferences"],
@@ -220,6 +238,28 @@ export default function SettingsPage() {
               <p>Set <code className="bg-amber-100 px-1 rounded">GEMINI_API_KEY</code> as a server environment variable.</p>
             </div>
           </div>
+        </div>
+
+        {/* ── Account ── */}
+        <div className="rounded-2xl border bg-white shadow-sm p-5 space-y-3">
+          <h2 className="font-semibold text-sm flex items-center gap-2">
+            <User className="w-4 h-4 text-primary" /> Account
+          </h2>
+          {user ? (
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm text-stone-600 truncate">{user.email}</span>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 transition-colors shrink-0"
+              >
+                <LogOut className="w-3 h-3" /> Sign out
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-stone-500">
+              <a href="/auth" className="font-semibold text-amber-600 hover:text-amber-700">Sign in</a> for unlimited verdicts and saved history.
+            </p>
+          )}
         </div>
 
         <p className="text-xs text-muted-foreground text-center">

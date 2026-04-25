@@ -1,6 +1,9 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, Package, Sparkles, Settings } from "lucide-react";
+import { Search, Package, Sparkles, Settings, LogIn, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
+import type { SupabaseUser } from "@/lib/supabase";
 
 const APP_NAV = [
   { href: "/app",      label: "Analyze",  icon: Search   },
@@ -17,13 +20,26 @@ const LANDING_NAV = [
 
 export default function Navbar() {
   const [location] = useLocation();
+  const [user, setUser] = useState<SupabaseUser>(null);
   const isAppPage = location.startsWith("/app") || location.startsWith("/saved") || location.startsWith("/settings");
   const nav = isAppPage ? APP_NAV : LANDING_NAV;
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   function isActive(href: string) {
     if (href === "/app") return location === "/app";
     if (href.startsWith("/#")) return false;
     return location.startsWith(href);
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
   }
 
   return (
@@ -64,23 +80,49 @@ export default function Navbar() {
           })}
         </nav>
 
-        {/* Primary CTA (always visible) */}
-        <Link
-          href="/app"
-          className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-white"
-          style={{ background: "hsl(32 95% 54%)" }}
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Try Worthly AI</span>
-          <span className="sm:hidden">Try</span>
-        </Link>
+        {/* Right side: auth or CTA */}
+        <div className="flex items-center gap-2">
+          {user ? (
+            <>
+              <span className="hidden sm:block text-xs text-muted-foreground truncate max-w-[140px]">
+                {user.email}
+              </span>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 transition-colors"
+              >
+                <LogOut className="w-3 h-3" />
+                <span className="hidden sm:inline">Sign out</span>
+              </button>
+            </>
+          ) : isAppPage ? (
+            <Link
+              href="/auth"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-white"
+              style={{ background: "hsl(32 95% 54%)" }}
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Sign in</span>
+            </Link>
+          ) : (
+            <Link
+              href="/app"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-white"
+              style={{ background: "hsl(32 95% 54%)" }}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Try Worthly AI</span>
+              <span className="sm:hidden">Try</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Mobile bottom nav — only on app pages */}
       {isAppPage && (
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
           <div className="flex">
-            {APP_NAV.slice(0, 5).map(({ href, label, icon: Icon }) => (
+            {APP_NAV.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
@@ -90,7 +132,7 @@ export default function Navbar() {
                 )}
               >
                 <Icon className="w-4 h-4" />
-                {label.split("/")[0]}
+                {label}
               </Link>
             ))}
           </div>
