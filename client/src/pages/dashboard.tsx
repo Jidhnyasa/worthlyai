@@ -3,14 +3,13 @@ import { Link } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { applySeo } from "@/lib/seo";
 import Navbar from "@/components/Navbar";
-import DecisionForm from "@/components/DecisionForm";
 import { apiRequest } from "@/lib/queryClient";
 import { getSessionId } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import {
   Sparkles, Bookmark, ExternalLink, Star, Shield, TrendingUp, Clock,
   Zap, ShoppingBag, RotateCcw, Search, AlertTriangle, ChevronRight,
-  DollarSign, Clock4, FileText, MessageSquare, Send,
+  DollarSign, Clock4, MessageSquare, Send,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -40,7 +39,7 @@ interface VerdictResult {
   recommendationId?: string;
 }
 
-type ActiveTab = "url" | "describe" | "saved";
+type ActiveTab = "url";
 
 // ─── Demo URLs ────────────────────────────────────────────────────────────────
 
@@ -519,7 +518,6 @@ export default function DashboardPage() {
     applySeo({ title: "Worthly AI — Analyze any product", noindex: true });
   }, []);
 
-  const [activeTab, setActiveTab]   = useState<ActiveTab>("url");
   const [url, setUrl]               = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [verdict, setVerdict]       = useState<VerdictResult | null>(null);
@@ -623,12 +621,6 @@ export default function DashboardPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const tabs: { key: ActiveTab; label: string; Icon: React.FC<{ className?: string }> }[] = [
-    { key: "url",      label: "Paste URL",      Icon: Search },
-    { key: "describe", label: "Describe it",    Icon: FileText },
-    { key: "saved",    label: "From my saved",  Icon: Bookmark },
-  ];
-
   return (
     <div className="min-h-screen bg-[hsl(38_25%_97%)] pb-20 md:pb-0">
       <Navbar />
@@ -637,28 +629,7 @@ export default function DashboardPage() {
 
         {/* ── Hero input card ── */}
         <section className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-          {/* Tabs */}
-          <div className="flex border-b border-stone-100">
-            {tabs.map(({ key, label, Icon }) => (
-              <button
-                key={key}
-                onClick={() => { setActiveTab(key); setVerdict(null); }}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-3.5 text-xs font-semibold transition-all",
-                  activeTab === key
-                    ? "text-stone-900 border-b-2 border-amber-500 -mb-px"
-                    : "text-stone-400 hover:text-stone-600"
-                )}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* URL tab */}
-          {activeTab === "url" && (
-            <div className="p-6 space-y-5">
+          <div className="p-6 space-y-5">
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-stone-900">
                   Paste any product URL — get a verdict
@@ -720,66 +691,12 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Describe it tab */}
-          {activeTab === "describe" && (
-            <div className="p-6">
-              <p className="text-sm font-semibold text-stone-700 mb-4">Describe what you're looking for</p>
-              <DecisionForm
-                onSubmit={(payload) => {
-                  setUrl(payload.message);
-                  setActiveTab("url");
-                }}
-                loading={false}
-              />
-            </div>
-          )}
-
-          {/* From my saved tab */}
-          {activeTab === "saved" && (
-            <div className="p-6 space-y-3">
-              <p className="text-sm font-semibold text-stone-700">Reopen a previous verdict</p>
-              {history.length === 0 ? (
-                <div className="py-8 text-center">
-                  <ShoppingBag className="w-8 h-8 text-stone-300 mx-auto mb-2" />
-                  <p className="text-sm text-stone-400">No verdicts yet — paste a URL to get started.</p>
-                  <button
-                    onClick={() => setActiveTab("url")}
-                    className="mt-3 text-xs font-semibold text-amber-600 hover:text-amber-700 transition-colors"
-                  >
-                    Analyze a product →
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {history.map((item, i) => {
-                    const cfg = VERDICT_CONFIG[item.verdict];
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => { setVerdict(item); setActiveTab("url"); setTimeout(() => verdictRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl border border-stone-100 hover:border-stone-200 hover:bg-stone-50 transition-all text-left"
-                      >
-                        {item.scraped.imageUrl ? (
-                          <img src={item.scraped.imageUrl} alt={item.scraped.title} className="w-10 h-10 rounded-lg object-contain border border-stone-100 bg-stone-50 shrink-0" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-lg bg-stone-50 border border-stone-100 shrink-0 flex items-center justify-center">
-                            <ShoppingBag className="w-4 h-4 text-stone-300" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-stone-700 truncate">{item.scraped.title}</p>
-                          <p className="text-[10px] text-stone-400 mt-0.5">{item.headline}</p>
-                        </div>
-                        <span className={cn("text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full border shrink-0", cfg.badgeBg, cfg.badgeText, cfg.badgeBorder)}>
-                          {cfg.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+          <p className="text-[11px] text-stone-400 flex items-center gap-2 pt-1">
+            Don't have a URL?{" "}
+            <Link href="/app/discover" className="font-semibold text-amber-600 hover:text-amber-700 transition-colors">
+              Describe what you want →
+            </Link>
+          </p>
         </section>
 
         {/* ── Recent verdicts history strip ── */}

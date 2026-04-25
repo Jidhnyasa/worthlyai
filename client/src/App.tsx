@@ -22,8 +22,8 @@ import SavedPage      from "@/pages/saved";
 import HistoryPage    from "@/pages/history";
 import SettingsPage   from "@/pages/settings";
 
-// Verdicts (buy/wait/skip) — renamed from app
-import VerdictsPage from "@/pages/app";
+// Discover: form-based product search
+import DiscoverPage from "@/pages/app";
 
 // Public discovery pages
 import VerdictSlugPage  from "@/pages/verdict-slug";
@@ -43,7 +43,7 @@ export default function App() {
         <Route path="/app/returns"       component={ReturnsPage} />
         <Route path="/app/subscriptions" component={SubscriptionsPage} />
         <Route path="/app/actions"       component={ActionsPage} />
-        <Route path="/app/verdicts"      component={VerdictsPage} />
+        <Route path="/app/discover"      component={DiscoverPage} />
         <Route path="/app/mine"          component={MinePage} />
 
         {/* ── App utilities ── */}
