@@ -1,89 +1,22 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { buildUrlVerdictPrompt, type UrlVerdictInput, type UrlVerdictResult } from "./prompts/verdict.js";
+import { scrapeProductFromUrl } from "./scrape/product.js";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-// ─── OG / meta tag scraper ────────────────────────────────────────────────────
-// No cheerio — just regex over raw HTML. Fast and dependency-free.
-
-function extractMeta(html: string, property: string): string | undefined {
-  const patterns = [
-    new RegExp(`<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["']`, "i"),
-    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${property}["']`, "i"),
-    new RegExp(`<meta[^>]+name=["']${property}["'][^>]+content=["']([^"']+)["']`, "i"),
-    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+name=["']${property}["']`, "i"),
-  ];
-  for (const re of patterns) {
-    const m = html.match(re);
-    if (m?.[1]) return m[1].trim();
-  }
-  return undefined;
-}
-
-function extractTitle(html: string): string | undefined {
-  const m = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  return m?.[1]?.trim();
-}
-
-function extractSchemaPrice(html: string): string | undefined {
-  // JSON-LD price
-  const ldMatch = html.match(/"price"\s*:\s*"?([0-9]+(?:\.[0-9]{1,2})?)"?/);
-  if (ldMatch?.[1]) return ldMatch[1];
-  // Meta price
-  return extractMeta(html, "product:price:amount") ?? extractMeta(html, "og:price:amount");
-}
-
 export async function scrapeProductMeta(url: string): Promise<UrlVerdictInput> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-
   try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; WorthlyBot/1.0; +https://worthlyai.com)",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-    });
-    clearTimeout(timeout);
-
-    const html = await res.text();
-
-    const title =
-      extractMeta(html, "og:title") ??
-      extractMeta(html, "twitter:title") ??
-      extractTitle(html);
-
-    const description =
-      extractMeta(html, "og:description") ??
-      extractMeta(html, "twitter:description") ??
-      extractMeta(html, "description");
-
-    const imageUrl =
-      extractMeta(html, "og:image") ??
-      extractMeta(html, "twitter:image");
-
-    const siteName =
-      extractMeta(html, "og:site_name") ??
-      new URL(url).hostname.replace("www.", "");
-
-    const brand =
-      extractMeta(html, "og:brand") ??
-      extractMeta(html, "product:brand");
-
-    const price =
-      extractSchemaPrice(html) ??
-      extractMeta(html, "og:price:amount");
-
-    return { url, title, description, imageUrl, siteName, brand, price };
-  } catch {
-    clearTimeout(timeout);
-    // Return minimal input — Gemini will handle "not enough info" gracefully
+    const scraped = await scrapeProductFromUrl(url);
     return {
       url,
-      siteName: new URL(url).hostname.replace("www.", ""),
+      title:       scraped.title !== "<could not identify>" ? scraped.title : undefined,
+      description: scraped.description,
+      imageUrl:    scraped.imageUrl,
+      siteName:    scraped.merchant ?? new URL(url).hostname.replace("www.", ""),
+      price:       scraped.price != null ? String(scraped.price) : undefined,
     };
+  } catch {
+    return { url, siteName: new URL(url).hostname.replace("www.", "") };
   }
 }
 
