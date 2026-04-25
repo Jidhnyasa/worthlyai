@@ -6,11 +6,10 @@ import { applySeo } from "@/lib/seo";
 import { apiRequest } from "@/lib/queryClient";
 import { getSessionId } from "@/lib/session";
 import type { DetectedProduct } from "@shared/schema";
-import { MOCK_DETECTED_PRODUCTS } from "@/lib/purchases-data";
 import { cn } from "@/lib/utils";
 import {
   Bookmark, Trash2, ExternalLink, ShoppingBag, Package,
-  CreditCard, TrendingUp, AlertTriangle, Mail, Plus,
+  CreditCard, TrendingUp, Mail, Plus,
   ArrowRight, Search,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -234,11 +233,8 @@ export default function MinePage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/detected-products"] }),
   });
 
-  const items: DetectedProduct[] = apiItems.length > 0 ? apiItems : MOCK_DETECTED_PRODUCTS;
-  const isDemo = apiItems.length === 0;
-
-  const watchingItems  = items.filter(i => i.verdict !== "skip");
-  const resaleItems    = items.filter(i => i.status === "sell" || i.verdict === "skip");
+  const watchingItems = apiItems.filter(i => i.verdict !== "skip");
+  const resaleItems   = apiItems.filter(i => i.status === "sell");
 
   const tabCounts: Record<TabKey, number> = {
     watching: watchingItems.length,
@@ -267,18 +263,11 @@ export default function MinePage() {
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
 
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="font-bold text-xl tracking-tight">Mine</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Everything you've saved, tracked, or analyzed — in one place.
-            </p>
-          </div>
-          {isDemo && (
-            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-stone-100 text-stone-400 border border-stone-200 shrink-0 mt-1">
-              Demo data
-            </span>
-          )}
+        <div>
+          <h1 className="font-bold text-xl tracking-tight">Mine</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Everything you've saved, tracked, or analyzed — in one place.
+          </p>
         </div>
 
         {/* Tab bar */}
@@ -310,19 +299,6 @@ export default function MinePage() {
           ))}
         </div>
 
-        {/* Demo notice */}
-        {isDemo && activeTab === "watching" && (
-          <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-100">
-            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-semibold text-amber-700">Demo data</p>
-              <p className="text-xs text-amber-600 mt-0.5">
-                Analyze a product on <Link href="/app" className="underline">the Analyze page</Link> and save it to see your real items here.
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Tab content */}
         {activeTab === "watching" && (
           <div className="space-y-3">
@@ -333,7 +309,7 @@ export default function MinePage() {
                 <ProductCard
                   key={item.id}
                   item={item}
-                  onDelete={() => !isDemo && deleteMutation.mutate(item.id)}
+                  onDelete={() => deleteMutation.mutate(item.id)}
                 />
               ))
             )}
@@ -352,7 +328,7 @@ export default function MinePage() {
                 <ProductCard
                   key={item.id}
                   item={item}
-                  onDelete={() => !isDemo && deleteMutation.mutate(item.id)}
+                  onDelete={() => deleteMutation.mutate(item.id)}
                 />
               ))
             )}
