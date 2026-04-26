@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { apiUrl } from "@/lib/api";
 import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import {
   Sparkles, TrendingDown, RefreshCcw, ArrowRight, Check, Star,
@@ -217,9 +218,10 @@ function WaitlistForm({ source = "extension_cta" }: { source?: string }) {
     if (!email.includes("@") || state === "loading") return;
     setState("loading");
     try {
-      const res = await fetch("/api/waitlist", {
+      const res = await fetch(apiUrl("/api/waitlist"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, source }),
       });
       if (res.ok) setState("done");

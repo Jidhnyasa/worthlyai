@@ -1,30 +1,21 @@
 import "dotenv/config";
+import cors from "cors";
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { log } from "./logger";
 
-// Allowed origins: same-origin (empty) + Chrome extension
-const ALLOWED_ORIGINS = [
-  /^chrome-extension:\/\//,
-  /^http:\/\/localhost/,
-  /^https:\/\/worthly\.ai/,
-];
-
 export async function createApp() {
   const app = express();
   const httpServer = createServer(app);
 
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    const origin = req.headers.origin || "";
-    if (ALLOWED_ORIGINS.some(re => re.test(origin))) {
-      res.setHeader("Access-Control-Allow-Origin", origin);
-      res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
-      res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-session-id, x-user-id");
-    }
-    if (req.method === "OPTIONS") return res.sendStatus(204);
-    next();
-  });
+  app.use(cors({
+    origin: [
+      "https://worthlyai.app",
+      "http://localhost:5173",
+    ],
+    credentials: true,
+  }));
 
   app.use(
     express.json({

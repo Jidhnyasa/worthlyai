@@ -5,7 +5,6 @@
   "framework": null,
   "outputDirectory": "dist/public",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/server.cjs" },
     { "source": "/((?!assets|favicon).*)", "destination": "/index.html" }
   ]
 }

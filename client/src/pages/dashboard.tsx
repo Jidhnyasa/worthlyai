@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { applySeo } from "@/lib/seo";
 import Navbar from "@/components/Navbar";
 import { apiRequest } from "@/lib/queryClient";
+import { apiUrl } from "@/lib/api";
 import { getSessionId } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import {
@@ -141,9 +142,10 @@ function VerdictChat({ verdictContext }: { verdictContext: string }) {
     }));
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch(apiUrl("/api/chat"), {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-session-id": getSessionId() },
+        credentials: "include",
         body: JSON.stringify({ message: text.trim(), verdictContext, history }),
       });
       if (!res.body) throw new Error("No stream");
