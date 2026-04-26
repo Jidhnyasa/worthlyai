@@ -622,7 +622,7 @@ export default function LandingPage() {
             {/* Subheadline */}
             <motion.p
               variants={fadeUp}
-              className="text-white/58 leading-[1.7] max-w-lg"
+              className="text-white leading-[1.7] max-w-lg"
               style={{ fontSize: "clamp(1rem, 1.5vw, 1.12rem)" }}
             >
               One AI layer that tells you what to buy, what to skip,
