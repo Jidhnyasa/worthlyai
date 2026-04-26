@@ -12,7 +12,7 @@ export default function AuthPage() {
   const [error, setError]       = useState<string | null>(null);
 
   useEffect(() => {
-    applySeo({ title: "Sign in — Worthly AI", noindex: true });
+    applySeo({ title: "Get started — Worthly AI", noindex: true });
 
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate("/app", { replace: true });
@@ -66,11 +66,14 @@ export default function AuthPage() {
               <div>
                 <p className="font-semibold text-stone-800">Check your email</p>
                 <p className="text-sm text-stone-500 mt-1">
-                  We sent a magic link to <span className="font-medium text-stone-700">{email}</span>. Click it to sign in.
+                  We sent a magic link to <span className="font-medium text-stone-700">{email}</span>. Click it to finish.
+                </p>
+                <p className="text-xs text-stone-400 mt-3">
+                  Don't see it? Check spam, or wait a minute and try again.
                 </p>
               </div>
               <button
-                onClick={() => setSent(false)}
+                onClick={() => { setSent(false); setEmail(""); }}
                 className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
               >
                 Use a different email
@@ -79,9 +82,9 @@ export default function AuthPage() {
           ) : (
             <>
               <div>
-                <h1 className="font-bold text-xl text-stone-900">Sign in</h1>
-                <p className="text-sm text-stone-400 mt-1">
-                  Get unlimited verdicts, price watches, and purchase history.
+                <h1 className="font-bold text-xl text-stone-900">Sign in or create your account</h1>
+                <p className="text-sm text-stone-500 mt-1">
+                  New here? Just enter your email — we'll create your account automatically.
                 </p>
               </div>
 
@@ -94,6 +97,7 @@ export default function AuthPage() {
                     onChange={e => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     required
+                    autoComplete="email"
                     className="w-full pl-10 pr-4 py-3 text-sm rounded-xl border border-stone-200 bg-stone-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 transition-all"
                   />
                 </div>
@@ -114,9 +118,14 @@ export default function AuthPage() {
                 </button>
               </form>
 
-              <p className="text-[11px] text-center text-stone-400">
-                No password needed. No spam. Just a sign-in link.
-              </p>
+              <div className="pt-2 border-t border-stone-100 space-y-1">
+                <p className="text-[11px] text-center text-stone-400">
+                  No password needed. No spam. Just a sign-in link.
+                </p>
+                <p className="text-[11px] text-center text-stone-400">
+                  Same form for sign in and sign up — we figure it out from your email.
+                </p>
+              </div>
             </>
           )}
         </div>

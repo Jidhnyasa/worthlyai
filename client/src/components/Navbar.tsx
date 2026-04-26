@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, Package, Sparkles, Settings, LogIn, LogOut } from "lucide-react";
+import { Search, Package, Sparkles, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import type { SupabaseUser } from "@/lib/supabase";
@@ -101,8 +101,9 @@ export default function Navbar() {
               className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-white"
               style={{ background: "hsl(32 95% 54%)" }}
             >
-              <LogIn className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Sign in</span>
+              <Sparkles className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Get started</span>
+              <span className="sm:hidden">Start</span>
             </Link>
           ) : (
             <Link
