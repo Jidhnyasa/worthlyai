@@ -755,7 +755,6 @@ export default function DashboardPage() {
                 3 free verdicts/day · Sign in for unlimited
               </p>
             </div>
-          )}
 
           <p className="text-[11px] text-stone-400 flex items-center gap-2 pt-1">
             Don't have a URL?{" "}
