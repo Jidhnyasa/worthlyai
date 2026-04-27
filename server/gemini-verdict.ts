@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType, type Schema } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -119,13 +119,49 @@ export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutp
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
 
+  const verdictSchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+      verdict: {
+        type: SchemaType.STRING,
+        enum: ["buy", "wait", "skip"],
+      },
+      verdictScore: { type: SchemaType.NUMBER },
+      headline: { type: SchemaType.STRING },
+      category: { type: SchemaType.STRING },
+      reasons: {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            label: { type: SchemaType.STRING },
+            detail: { type: SchemaType.STRING },
+          },
+          required: ["label", "detail"],
+        },
+      },
+      scores: {
+        type: SchemaType.OBJECT,
+        properties: {
+          fit: { type: SchemaType.NUMBER },
+          value: { type: SchemaType.NUMBER },
+          proof: { type: SchemaType.NUMBER },
+          regret: { type: SchemaType.NUMBER },
+        },
+        required: ["fit", "value", "proof", "regret"],
+      },
+    },
+    required: ["verdict", "verdictScore", "headline", "category", "reasons", "scores"],
+  };
+
   try {
-   const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
       generationConfig: {
-      responseMimeType: "application/json",
-   },
- });
+        responseMimeType: "application/json",
+        responseSchema: verdictSchema as Schema,
+      },
+    });
     const prompt = buildPrompt(input);
 
     const result = await model.generateContent({
@@ -138,17 +174,7 @@ export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutp
     });
 
     clearTimeout(timeout);
-    let rawText = result.response.text().trim();
-    if (rawText.startsWith("```")) {
-      rawText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
-    }
-    let verdict: Partial<VerdictOutput>;
-    try {
-      verdict = JSON.parse(rawText);
-    } catch (err) {
-      console.error("Gemini returned invalid JSON. Raw output:", rawText);
-      throw new Error("Verdict parsing failed: " + (err as Error).message);
-    }
+    const verdict = JSON.parse(result.response.text()) as Partial<VerdictOutput>;
     return normalize(verdict, input);
   } catch (err) {
     clearTimeout(timeout);
