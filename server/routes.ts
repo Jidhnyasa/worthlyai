@@ -365,7 +365,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       : CHAT_SYSTEM;
 
     try {
-      const model = chatAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = chatAI.getGenerativeModel({ model: "gemini-2.0-flash" });
       const chat  = model.startChat({
         history: [
           { role: "user",  parts: [{ text: systemContext }] },
