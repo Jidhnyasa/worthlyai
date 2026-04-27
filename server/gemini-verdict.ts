@@ -120,7 +120,7 @@ export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutp
   const timeout = setTimeout(() => controller.abort(), 10_000);
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = buildPrompt(input);
 
     const result = await model.generateContent({
