@@ -168,8 +168,8 @@ export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutp
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
         responseMimeType: "application/json",
-        temperature: 0.25,
-        maxOutputTokens: 1200,
+        temperature: 0.4,
+        maxOutputTokens: 2048,
       },
     });
 
