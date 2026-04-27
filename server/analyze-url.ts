@@ -24,7 +24,7 @@ export async function scrapeProductMeta(url: string): Promise<UrlVerdictInput> {
 
 export async function getUrlVerdict(input: UrlVerdictInput): Promise<UrlVerdictResult> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = buildUrlVerdictPrompt(input);
 
     const result = await model.generateContent({
