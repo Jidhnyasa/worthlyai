@@ -5,6 +5,29 @@ type Scraped = VerdictInput["scraped"];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function extractJsonLdPrice($: cheerio.CheerioAPI): { price?: number; title?: string } {
+  const scripts = $('script[type="application/ld+json"]').toArray();
+  for (const el of scripts) {
+    try {
+      const data = JSON.parse($(el).html() || "");
+      const product =
+        data["@type"] === "Product" ? data :
+        Array.isArray(data["@graph"]) ? data["@graph"].find((n: any) => n["@type"] === "Product") :
+        null;
+      if (!product) continue;
+      const raw = product.offers?.price ?? product.offers?.lowPrice;
+      const price = raw != null ? parseFloat(String(raw)) : undefined;
+      const title = typeof product.name === "string" ? product.name : undefined;
+      if (price != null && !isNaN(price)) return { price, title };
+    } catch {}
+  }
+  return {};
+}
+
+function sanityPrice(p: number | undefined): number | undefined {
+  return p != null && p >= 1 && p <= 50_000 ? p : undefined;
+}
+
 function parsePrice(str: string | null | undefined): number | undefined {
   if (!str) return undefined;
   const n = parseFloat(str.replace(/[^0-9.]/g, ""));
@@ -35,19 +58,31 @@ function detectPlatform(hostname: string): string {
 // Selectors mirrored from extension/content/content.js — kept in sync.
 
 function extractAmazon($: cheerio.CheerioAPI, url: string): Scraped {
-  const title =
+  let title =
     $("#productTitle").text().trim() ||
     $("h1.a-size-large span").text().trim() ||
     $("h1").first().text().trim() ||
     "";
 
-  const whole = $(".a-price-whole").first().text().replace(/[^0-9]/g, "");
-  const frac  = $(".a-price-fraction").first().text().replace(/[^0-9]/g, "") || "00";
-  const priceStr =
-    whole ? `${whole}.${frac}` :
-    $("#priceblock_ourprice, #priceblock_dealprice, #price_inside_buybox").first().text() ||
-    $(".a-price .a-offscreen").first().text();
-  const price = parsePrice(priceStr);
+  // Step 1: JSON-LD
+  const jsonLd = extractJsonLdPrice($);
+  if (!title && jsonLd.title) title = jsonLd.title;
+  let price = sanityPrice(jsonLd.price);
+  if (price != null) {
+    console.log(`[amazon] price source: jsonld value: ${price}`);
+  } else {
+    // Step 2: buy-box scoped selectors
+    const corePriceText =
+      $("#corePrice_feature_div .a-price[data-a-size='xl'] .a-offscreen").first().text() ||
+      $("#corePriceDisplay_desktop_feature_div .a-price .a-offscreen").first().text() ||
+      $("#apex_desktop .a-price .a-offscreen").first().text();
+    price = sanityPrice(parsePrice(corePriceText));
+    if (price != null) {
+      console.log(`[amazon] price source: corePrice value: ${price}`);
+    } else {
+      console.log(`[amazon] price source: none — extraction failed`);
+    }
+  }
 
   const ratingText = $("#acrPopover").attr("title") || $(".a-icon-star-small .a-icon-alt").first().text();
   const rating = parseRating(ratingText);
