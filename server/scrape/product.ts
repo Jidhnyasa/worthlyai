@@ -191,30 +191,22 @@ export async function scrapeProductFromUrl(url: string): Promise<Scraped> {
   const timer = setTimeout(() => controller.abort(), 15_000);
 
   const sbKey = process.env.SCRAPINGBEE_KEY;
-  const fetchUrl = sbKey
-    ? `https://app.scrapingbee.com/api/v1/?api_key=${sbKey}&url=${encodeURIComponent(url)}&render_js=true`
-    : url;
+  if (!sbKey) {
+    throw new Error("SCRAPINGBEE_KEY env var not set");
+  }
+  const sbUrl = `https://app.scrapingbee.com/api/v1/?api_key=${sbKey}&url=${encodeURIComponent(url)}&render_js=true`;
 
   try {
-    const res = await fetch(fetchUrl, {
-      signal: controller.signal,
-      ...(sbKey ? {} : {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-          "Accept-Language": "en-US,en;q=0.9",
-          "Cache-Control": "no-cache",
-        },
-      }),
-    });
+    const res = await fetch(sbUrl, { signal: controller.signal });
     clearTimeout(timer);
 
+    const html = await res.text();
+    console.log(`[scraper] ScrapingBee status=${res.status} url=${url} htmlLen=${html.length} preview=${html.slice(0, 200)}`);
+
     if (!res.ok) {
-      console.warn(`[scraper] ${parsed.hostname} returned ${res.status}${sbKey ? " (via ScrapingBee)" : ""}`);
+      console.warn(`[scraper] ${parsed.hostname} returned ${res.status} via ScrapingBee`);
       return { title: "<could not identify>", merchant: parsed.hostname.replace("www.", "") };
     }
-
-    const html = await res.text();
     const $ = cheerio.load(html);
     const platform = detectPlatform(parsed.hostname + parsed.pathname);
 
