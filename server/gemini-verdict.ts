@@ -120,7 +120,12 @@ export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutp
   const timeout = setTimeout(() => controller.abort(), 10_000);
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+   const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: {
+      responseMimeType: "application/json",
+   },
+ });
     const prompt = buildPrompt(input);
 
     const result = await model.generateContent({
@@ -133,8 +138,18 @@ export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutp
     });
 
     clearTimeout(timeout);
-    const raw = JSON.parse(result.response.text()) as Partial<VerdictOutput>;
-    return normalize(raw, input);
+    let rawText = result.response.text().trim();
+    if (rawText.startsWith("```")) {
+      rawText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    }
+    let verdict: Partial<VerdictOutput>;
+    try {
+      verdict = JSON.parse(rawText);
+    } catch (err) {
+      console.error("Gemini returned invalid JSON. Raw output:", rawText);
+      throw new Error("Verdict parsing failed: " + (err as Error).message);
+    }
+    return normalize(verdict, input);
   } catch (err) {
     clearTimeout(timeout);
     console.error("Gemini verdict error:", err);
