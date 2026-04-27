@@ -188,22 +188,29 @@ export async function scrapeProductFromUrl(url: string): Promise<Scraped> {
   }
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 6_000);
+  const timer = setTimeout(() => controller.abort(), 15_000);
+
+  const sbKey = process.env.SCRAPINGBEE_KEY;
+  const fetchUrl = sbKey
+    ? `https://app.scrapingbee.com/api/v1/?api_key=${sbKey}&url=${encodeURIComponent(url)}&render_js=true`
+    : url;
 
   try {
-    const res = await fetch(url, {
+    const res = await fetch(fetchUrl, {
       signal: controller.signal,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Cache-Control": "no-cache",
-      },
+      ...(sbKey ? {} : {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Cache-Control": "no-cache",
+        },
+      }),
     });
     clearTimeout(timer);
 
     if (!res.ok) {
-      console.warn(`[scraper] ${parsed.hostname} returned ${res.status}`);
+      console.warn(`[scraper] ${parsed.hostname} returned ${res.status}${sbKey ? " (via ScrapingBee)" : ""}`);
       return { title: "<could not identify>", merchant: parsed.hostname.replace("www.", "") };
     }
 
@@ -223,7 +230,7 @@ export async function scrapeProductFromUrl(url: string): Promise<Scraped> {
   } catch (err: any) {
     clearTimeout(timer);
     if (err?.name === "AbortError") {
-      console.warn(`[scraper] ${parsed.hostname} timed out after 6s`);
+      console.warn(`[scraper] ${parsed.hostname} timed out after 15s`);
     } else {
       console.warn(`[scraper] ${parsed.hostname} fetch error:`, err?.message);
     }
