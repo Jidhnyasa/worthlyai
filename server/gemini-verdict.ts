@@ -148,6 +148,20 @@ export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutp
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
 
+  const { scraped } = input;
+  if (!scraped.price || scraped.price < 1 || !scraped.title || scraped.title.includes("could not identify")) {
+    console.warn(`[verdict] insufficient scrape data, returning early: title="${scraped.title}" price=${scraped.price}`);
+    clearTimeout(timeout);
+    return {
+      verdict: "wait",
+      verdictScore: 50,
+      headline: "Couldn't fully read this page",
+      reasons: [{ label: "Page didn't load completely", detail: "We couldn't extract a clean price from this page. Try the canonical product URL (without filters or tracking parameters) for a real verdict." }],
+      scores: { fit: 50, value: 50, proof: 50, regret: 50 },
+      category: "other",
+    };
+  }
+
   const verdictSchema = {
     type: SchemaType.OBJECT,
     properties: {

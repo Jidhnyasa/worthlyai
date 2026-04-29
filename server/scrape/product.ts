@@ -54,6 +54,25 @@ function detectPlatform(hostname: string): string {
   return "generic";
 }
 
+function canonicalizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (/amazon\.(com|co\.uk|ca|de|fr|es|it|jp|in|com\.au)/.test(parsed.hostname)) {
+      const m = url.match(/\/dp\/([A-Z0-9]{10})/);
+      if (m) {
+        const canonical = `${parsed.protocol}//${parsed.hostname}/dp/${m[1]}`;
+        if (canonical !== url) {
+          console.log(`[scraper] canonicalized Amazon URL: ${url.slice(0, 80)}... -> ${canonical}`);
+        }
+        return canonical;
+      }
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
+
 // ─── Platform extractors ──────────────────────────────────────────────────────
 // Selectors mirrored from extension/content/content.js — kept in sync.
 
@@ -229,7 +248,8 @@ export async function scrapeProductFromUrl(url: string): Promise<Scraped> {
   if (!sbKey) {
     throw new Error("SCRAPINGBEE_KEY env var not set");
   }
-  const sbUrl = `https://app.scrapingbee.com/api/v1/?api_key=${sbKey}&url=${encodeURIComponent(url)}&render_js=true`;
+  const fetchUrl = canonicalizeUrl(url);
+  const sbUrl = `https://app.scrapingbee.com/api/v1/?api_key=${sbKey}&url=${encodeURIComponent(fetchUrl)}&render_js=true`;
 
   try {
     const res = await fetch(sbUrl, { signal: controller.signal });
