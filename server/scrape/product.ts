@@ -83,6 +83,20 @@ function extractAmazon($: cheerio.CheerioAPI, url: string): Scraped {
     $("h1").first().text().trim() ||
     "";
 
+  // TEMP DEBUG — remove after diagnosis
+  const priceCandidates: string[] = [];
+  $('*').each((_, el) => {
+    const text = $(el).text().slice(0, 100);
+    if (/\$\s*\d/.test(text) && text.length < 80) {
+      const tag = (el as any).tagName ?? "unknown";
+      const id = $(el).attr('id') || '';
+      const cls = ($(el).attr('class') || '').slice(0, 60);
+      priceCandidates.push(`${tag}#${id}.${cls} :: ${text.replace(/\s+/g, ' ').trim()}`);
+    }
+  });
+  console.log(`[amazon-debug] price candidates (first 20):`);
+  priceCandidates.slice(0, 20).forEach(c => console.log(`  ${c}`));
+
   // Step 1: JSON-LD
   const jsonLd = extractJsonLdPrice($);
   if (!title && jsonLd.title) title = jsonLd.title;
