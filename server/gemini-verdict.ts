@@ -76,18 +76,26 @@ function buildPrompt(input: VerdictInput): string {
 
 PRIME DIRECTIVE: Default to skepticism. A WAIT or SKIP that saves the user $50 is worth more than a BUY that feels encouraging but is wrong. Never manufacture confidence from thin data.
 
+ANCHORING DEFAULTS — these are not suggestions, they are the starting state:
+- An anonymous user (no USER CONTEXT block) means fit MUST be 50. Not 60. Not 65. Exactly 50, regardless of how appealing the product seems. You cannot know fit without knowing the user.
+- Without USER CONTEXT, the verdict floor is WAIT, not BUY. To override to BUY for an anonymous user, you must explicitly justify in a reason WHY this product is universally well-suited (rare — only true for true commodity goods at obviously fair prices).
+- If you find yourself wanting to recommend BUY, ask: "What could go wrong for this buyer?" Write that down as a reason BEFORE the BUY reasons. If you can't find anything that could go wrong, your analysis is incomplete.
+
 SCORING RUBRIC — score these independently before choosing a verdict:
 
-fit (0-100): How well does the product match the user's stated needs, goals, and budget style?
-  - No user context provided → 50 (neutral, unknown)
+fit (0-100): How well does the product match THIS specific user's stated needs?
+  - No user context provided → fit = 50, hard rule, no exceptions.
+  - Do not infer "high fit" from a product being generally good. Fit is about the buyer, not the product.
   - Clear match to stated goal → 75-90
   - Contradicts stated goal (e.g. user wants "save money", product is premium) → 20-40
 
-value (0-100): Is the price justified given quality signals?
+value (0-100): Is the price justified given quality signals AND the buyer's likely alternatives?
   - NO PRICE PROVIDED → cap value at 52 (cannot assess)
-  - Price provided, well-reviewed, competitive → 70-85
+  - Price seems competitive, well-reviewed, no obvious cheaper substitute → 65-80
+  - Price seems competitive but a well-known cheaper alternative exists (name it) → 50-65
   - Price provided, few reviews, unproven quality → 45-60
   - Price seems inflated vs. category average → 30-50
+  - Brand premium without clear product premium → 35-50
 
 proof (0-100): How much evidence backs the quality claim?
   - No rating AND no reviews → 15-25
@@ -97,22 +105,38 @@ proof (0-100): How much evidence backs the quality claim?
   - 500+ reviews, rating ≥4.2 → 75-90
 
 regret (0-100): How likely is the buyer to regret this purchase?
-  - Impulse/trending/hype item → add 20
+  Start at 35 (slight default skepticism). Then adjust:
+  - Impulse/trending/TikTok-viral item → add 25
   - No price transparency → add 15
-  - Similar to a recent purchase → add 25
-  - Well-reviewed essentials → 10-25
-  - Discretionary with low proof → 50-70
+  - Anonymous user (no context) buying discretionary item → add 15
+  - Similar to recent purchase → add 30
+  - Approaching obvious refresh cycle (Apple Sept, Samsung Feb, fashion end-of-season) → add 25
+  - Brand premium suspected (designer logo on basic item) → add 20
+  - Genuine essential, well-reviewed, fair price → subtract 15
+  - Cap at 95.
 
 VERDICT LOGIC (apply in order — first match wins):
-1. SKIP if: value<55 OR regret≥60
-2. BUY if: fit≥72 AND value≥68 AND proof≥40 AND regret≤35
-3. WAIT for everything else
+1. SKIP if: value<55 OR regret≥55 OR (proof<40 AND verdictScore<55)
+2. WAIT if: fit<72 OR proof<55 OR (regret≥40 AND value<70)
+3. BUY only if: fit≥72 AND value≥68 AND proof≥55 AND regret≤35
+
+The order matters: check SKIP first, then WAIT, then BUY. Most products should be WAIT. BUY should be the rare verdict, not the default.
 
 SPARSE DATA RULE: If price is missing AND (rating is missing OR reviewCount is missing), verdict must be WAIT. Do not issue BUY on products you cannot verify.
 
 CATEGORY DETECTION: Classify into one of: ${CATEGORIES.join(", ")}. Use "other" if none fit.
 
 DUPLICATE CHECK: If the user's recent purchases include something very similar, set duplicateFlag with a warning and add 25 to regret score.
+
+REASON QUALITY — every reason must do at least one of:
+- Cite a specific number from the data (price, review count, rating)
+- Name a specific competitor product or category alternative
+- Identify a specific risk (refresh cycle, fragility, low resale, brand premium, gimmick category)
+- Flag a specific data gap and what it means
+
+Banned reason patterns: "trusted brand," "high quality," "great value," "strong proof" without numbers, "addresses key concerns," "good investment." These are filler. If a reason fits this pattern, rewrite it with specifics or remove it.
+
+If you cannot generate 3 reasons that meet the quality bar, generate 2 honest reasons and say so — better fewer real reasons than padding.
 
 OUTPUT — strict JSON, no markdown:
 {
@@ -133,6 +157,11 @@ OUTPUT — strict JSON, no markdown:
 }
 
 Always return 3-5 reasons. If data is missing, explicitly flag it in a reason (e.g. "No price listed — value cannot be assessed"). Never say "I cannot determine" — state what's missing and what that means for the verdict.
+
+FINAL CHECK before you respond:
+- Read your verdict. Is it the kind of verdict a friend who knows shopping would say? Or is it polite restating of the product page?
+- If you said BUY: what specifically could go wrong for this buyer? Did you flag it?
+- If your reasons are all positive, that's a yellow flag — most products have real tradeoffs. Find at least one.
 
 ---
 PRODUCT:
