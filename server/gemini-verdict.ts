@@ -16,6 +16,11 @@ export interface VerdictInput {
     reviewCount?: number;
     description?: string;
   };
+  userIntent?: {
+    audience: "self_planned" | "self_impulse" | "gift" | "household";
+    mood: "decided" | "leaning_yes" | "on_fence" | "reconsidering";
+    avoiding: "overspending" | "regret" | "unused" | "fomo" | "none";
+  } | null;
   userContext?: {
     budgetStyle?: string;         // "budget" | "balanced" | "quality" | "premium"
     favoriteBrands?: string[];
@@ -49,7 +54,7 @@ export interface VerdictOutput {
 const CATEGORIES = ["electronics", "fashion", "beauty", "home", "fitness", "baby", "gifting"];
 
 function buildPrompt(input: VerdictInput): string {
-  const { scraped, userContext, url } = input;
+  const { scraped, userContext, userIntent, url } = input;
 
   const productLines = [
     `URL: ${url}`,
@@ -71,6 +76,31 @@ function buildPrompt(input: VerdictInput): string {
       ? `Recent purchases: ${userContext.recentPurchases.slice(0, 3).map(p => p.title).join(", ")}`
       : null,
   ].filter(Boolean).join("\n") : null;
+
+  const AUDIENCE_LABELS: Record<string, string> = {
+    self_planned: "Buying for self, planned purchase",
+    self_impulse: "Buying for self, impulse",
+    gift:         "Gift for someone else",
+    household:    "For household / family use",
+  };
+  const MOOD_LABELS: Record<string, string> = {
+    decided:       "Already decided, just verifying price",
+    leaning_yes:   "Leaning toward buying, wants sanity check",
+    on_fence:      "On the fence, wants real opinion",
+    reconsidering: "Reconsidering — has been thinking about this",
+  };
+  const AVOIDING_LABELS: Record<string, string> = {
+    overspending: "Avoiding overspending — wants value",
+    regret:       "Avoiding buyer's remorse",
+    unused:       "Avoiding buying something they won't use",
+    fomo:         "FOMO-driven, wants reassurance this is right",
+    none:         "No specific concern",
+  };
+  const intentLines = userIntent ? [
+    `Audience: ${AUDIENCE_LABELS[userIntent.audience]}`,
+    `Current mindset: ${MOOD_LABELS[userIntent.mood]}`,
+    `Trying to avoid: ${AVOIDING_LABELS[userIntent.avoiding]}`,
+  ].join("\n") : null;
 
   return `You are Worthly — a purchase outcome agent whose only job is protecting the buyer's money. You are NOT a shopping assistant. You do not help people buy things. You help people avoid bad purchases.
 
@@ -114,6 +144,18 @@ regret (0-100): How likely is the buyer to regret this purchase?
   - Brand premium suspected (designer logo on basic item) → add 20
   - Genuine essential, well-reviewed, fair price → subtract 15
   - Cap at 95.
+
+INTENT MODIFIERS — apply after base scoring:
+  - audience = "self_impulse"   → add 15 to regret
+  - audience = "gift"           → fit cannot exceed 65 (you don't know recipient well enough)
+  - mood    = "decided"         → if BUY, mention any major risk you noticed; do not block the BUY
+  - mood    = "leaning_yes"     → be skeptical; lean toward WAIT unless evidence is strong
+  - mood    = "on_fence"        → be opinionated and decisive; this user wants a clear answer
+  - mood    = "reconsidering"   → lean toward SKIP unless something genuinely surprises you favorably; the buyer's own gut says don't
+  - avoiding = "overspending"   → cap value at 70 unless price is clearly below category average
+  - avoiding = "regret"         → add 10 to regret (they've felt this before)
+  - avoiding = "unused"         → flag any indicator of impulse/trend in regret reasoning
+  - avoiding = "fomo"           → explicitly call out if there's no real urgency; reassure that waiting is fine
 
 VERDICT LOGIC (apply in order — first match wins):
 1. SKIP if: value<55 OR regret≥55 OR (proof<40 AND verdictScore<55)
@@ -159,6 +201,7 @@ OUTPUT — strict JSON, no markdown:
 Always return 3-5 reasons. If data is missing, explicitly flag it in a reason (e.g. "No price listed — value cannot be assessed"). Never say "I cannot determine" — state what's missing and what that means for the verdict.
 
 FINAL CHECK before you respond:
+- If userIntent was provided, your verdict should explicitly reflect the user's stated mindset. If they said they're 'reconsidering,' you should not be giving a confident BUY without naming what changed your mind.
 - Read your verdict. Is it the kind of verdict a friend who knows shopping would say? Or is it polite restating of the product page?
 - If you said BUY: what specifically could go wrong for this buyer? Did you flag it?
 - If your reasons are all positive, that's a yellow flag — most products have real tradeoffs. Find at least one.
@@ -167,7 +210,7 @@ FINAL CHECK before you respond:
 PRODUCT:
 ${productLines}
 
-${userLines ? `USER CONTEXT:\n${userLines}\n` : ""}
+${intentLines ? `USER INTENT:\n${intentLines}\n\n` : ""}${userLines ? `USER CONTEXT:\n${userLines}\n` : ""}
 Output JSON verdict now.`;
 }
 
@@ -240,8 +283,9 @@ export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutp
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
         responseMimeType: "application/json",
+        responseSchema: verdictSchema as Schema,
         temperature: 0.4,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 4096,
       },
     });
 

@@ -15,6 +15,35 @@ Keep answers to 2-4 sentences unless the user asks for more.
 If verdict JSON is provided in the context, use it directly — do not re-derive it.
 Be specific, honest, and concise. If something is a bad deal, say so plainly.`;
 
+// ── userIntent validator ─────────────────────────────────────────────────────
+const AUDIENCE_VALS = ["self_planned", "self_impulse", "gift", "household"] as const;
+const MOOD_VALS     = ["decided", "leaning_yes", "on_fence", "reconsidering"] as const;
+const AVOIDING_VALS = ["overspending", "regret", "unused", "fomo", "none"] as const;
+
+type UserIntent = {
+  audience: typeof AUDIENCE_VALS[number];
+  mood:     typeof MOOD_VALS[number];
+  avoiding: typeof AVOIDING_VALS[number];
+};
+
+function parseUserIntent(raw: unknown): UserIntent | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  if (
+    !AUDIENCE_VALS.includes(r.audience as any) ||
+    !MOOD_VALS.includes(r.mood as any) ||
+    !AVOIDING_VALS.includes(r.avoiding as any)
+  ) {
+    console.warn(`[verdict] invalid userIntent — discarding:`, JSON.stringify(r));
+    return null;
+  }
+  return {
+    audience: r.audience as UserIntent["audience"],
+    mood:     r.mood     as UserIntent["mood"],
+    avoiding: r.avoiding as UserIntent["avoiding"],
+  };
+}
+
 // ── IP rate limiter — 3 anonymous verdicts per IP per day ────────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
@@ -259,7 +288,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // ── POST /api/verdict/url ────────────────────────────────────────────────────
   // Full URL verdict: scrapes DOM, injects user context, rate-limits anonymous users.
   app.post("/api/verdict/url", async (req, res) => {
-    const { url } = req.body as { url?: string };
+    const { url, userIntent: rawIntent } = req.body as { url?: string; userIntent?: unknown };
     if (!url || typeof url !== "string") {
       return res.status(400).json({ error: "url is required" });
     }
@@ -284,6 +313,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
     }
 
+    const userIntent = parseUserIntent(rawIntent);
+    console.log(`[verdict] userIntent provided: ${!!userIntent}`);
+
     try {
       // 1. Scrape
       const scraped = await scrapeProductFromUrl(url);
@@ -305,7 +337,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       // 3. Verdict
-      const verdict = await getVerdictForUrl({ url, scraped, userContext });
+      const verdict = await getVerdictForUrl({ url, scraped, userContext, userIntent: userIntent ?? undefined });
 
       // 4. Persist (best-effort)
       let queryId: string | undefined;

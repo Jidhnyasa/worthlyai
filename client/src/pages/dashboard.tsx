@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { apiUrl } from "@/lib/api";
 import { getSessionId } from "@/lib/session";
 import { cn } from "@/lib/utils";
+import IntentModal, { type IntentAnswers } from "@/components/IntentModal";
 import {
   Sparkles, Bookmark, ExternalLink, Star, Shield, TrendingUp, Clock,
   Zap, ShoppingBag, RotateCcw, Search, AlertTriangle, ChevronRight,
@@ -41,6 +42,7 @@ interface VerdictResult {
 }
 
 type ActiveTab = "url";
+type UserIntent = IntentAnswers | null;
 
 // ─── Demo URLs ────────────────────────────────────────────────────────────────
 
@@ -568,6 +570,8 @@ export default function DashboardPage() {
   const [verdict, setVerdict]       = useState<VerdictResult | null>(null);
   const [isSaved, setIsSaved]       = useState(false);
   const [history, setHistory]       = useState<VerdictResult[]>([]);
+  const [showModal, setShowModal]   = useState(false);
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
   const verdictRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
 
@@ -580,16 +584,13 @@ export default function DashboardPage() {
     },
   });
 
-  async function handleAnalyze(urlOverride?: string) {
+  function handleAnalyze(urlOverride?: string) {
     const trimmed = (urlOverride ?? url).trim();
     if (!trimmed) return;
-    setIsAnalyzing(true);
-    setVerdict(null);
-    setIsSaved(false);
     if (urlOverride) setUrl(urlOverride);
 
     if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-      const errorResult: VerdictResult = {
+      setVerdict({
         verdict: "wait",
         verdictScore: 50,
         headline: "Paste a full product URL to get a verdict",
@@ -599,15 +600,27 @@ export default function DashboardPage() {
         ],
         scores: { fit: 50, value: 50, proof: 50, regret: 50 },
         scraped: { title: trimmed },
-      };
-      setVerdict(errorResult);
-      setIsAnalyzing(false);
+      });
       setTimeout(() => verdictRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
       return;
     }
 
+    setPendingUrl(trimmed);
+    setShowModal(true);
+  }
+
+  async function submitVerdict(trimmed: string, intent: UserIntent) {
+    setShowModal(false);
+    setIsAnalyzing(true);
+    setVerdict(null);
+    setIsSaved(false);
+
     try {
-      const res = await apiRequest("POST", "/api/verdict/url", { url: trimmed }, { "x-session-id": getSessionId() });
+      const res = await apiRequest(
+        "POST", "/api/verdict/url",
+        { url: trimmed, userIntent: intent ?? undefined },
+        { "x-session-id": getSessionId() },
+      );
       if (res.status === 402) {
         const data = await res.json();
         setVerdict({
@@ -850,6 +863,12 @@ export default function DashboardPage() {
         </section>
 
       </div>
+
+      <IntentModal
+        open={showModal}
+        onSubmit={answers => submitVerdict(pendingUrl!, answers)}
+        onSkip={() => submitVerdict(pendingUrl!, null)}
+      />
     </div>
   );
 }
