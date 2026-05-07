@@ -60,6 +60,7 @@ function canonicalizeUrl(url: string): string {
     if (/amazon\.(com|co\.uk|ca|de|fr|es|it|jp|in|com\.au)/.test(parsed.hostname)) {
       const m = url.match(/\/dp\/([A-Z0-9]{10})/);
       if (m) {
+        // Query params (e.g. ?th=1&psc=1) and /ref= path segments are intentionally dropped.
         const canonical = `${parsed.protocol}//${parsed.hostname}/dp/${m[1]}`;
         if (canonical !== url) {
           console.log(`[scraper] canonicalized Amazon URL: ${url.slice(0, 80)}... -> ${canonical}`);

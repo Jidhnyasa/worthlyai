@@ -5,3 +5,7 @@ dist/
 *.db-wal
 .env
 .env.local
+
+# Extension build artifacts
+extension/dist/
+extension/node_modules/
