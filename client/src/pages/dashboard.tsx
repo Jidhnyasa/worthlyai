@@ -5,6 +5,7 @@ import { applySeo } from "@/lib/seo";
 import Navbar from "@/components/Navbar";
 import { apiRequest } from "@/lib/queryClient";
 import { apiUrl } from "@/lib/api";
+import WorthlyOnboarding from "@/components/WorthlyOnboarding";
 import { getSessionId } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import IntentModal, { type IntentAnswers } from "@/components/IntentModal";
@@ -565,6 +566,18 @@ export default function DashboardPage() {
     applySeo({ title: "Worthly AI — Analyze any product", noindex: true });
   }, []);
 
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try {
+      return !localStorage.getItem("worthly_onboarding_complete");
+    } catch {
+      return false;
+    }
+  });
+
+  function handleOnboardingComplete() {
+    setShowOnboarding(false);
+  }
+
   const [url, setUrl]               = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [verdict, setVerdict]       = useState<VerdictResult | null>(null);
@@ -703,7 +716,11 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[hsl(38_25%_97%)] pb-20 md:pb-0">
+    <>
+      {showOnboarding && (
+        <WorthlyOnboarding onComplete={handleOnboardingComplete} />
+      )}
+      <div className="min-h-screen bg-[hsl(38_25%_97%)] pb-20 md:pb-0">
       <Navbar />
 
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
@@ -869,6 +886,7 @@ export default function DashboardPage() {
         onSubmit={answers => submitVerdict(pendingUrl!, answers)}
         onSkip={() => submitVerdict(pendingUrl!, null)}
       />
-    </div>
+      </div>
+    </>
   );
 }
