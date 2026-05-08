@@ -17,9 +17,11 @@ export interface VerdictInput {
     description?: string;
   };
   userIntent?: {
-    audience: "self_planned" | "self_impulse" | "gift" | "household";
-    mood: "decided" | "leaning_yes" | "on_fence" | "reconsidering";
-    avoiding: "overspending" | "regret" | "unused" | "fomo" | "none";
+    budget: string;
+    reason: string;
+    owns_similar: string;
+    need_level: string;
+    priority: string;
   } | null;
   userContext?: {
     budgetStyle?: string;         // "budget" | "balanced" | "quality" | "premium"
@@ -77,29 +79,43 @@ function buildPrompt(input: VerdictInput): string {
       : null,
   ].filter(Boolean).join("\n") : null;
 
-  const AUDIENCE_LABELS: Record<string, string> = {
-    self_planned: "Buying for self, planned purchase",
-    self_impulse: "Buying for self, impulse",
-    gift:         "Gift for someone else",
-    household:    "For household / family use",
+  const BUDGET_LABELS: Record<string, string> = {
+    under_25:     "Budget under $25",
+    from_25_75:   "Budget $25–$75",
+    from_75_150:  "Budget $75–$150",
+    from_150_300: "Budget $150–$300",
+    over_300:     "Budget over $300",
   };
-  const MOOD_LABELS: Record<string, string> = {
-    decided:       "Already decided, just verifying price",
-    leaning_yes:   "Leaning toward buying, wants sanity check",
-    on_fence:      "On the fence, wants real opinion",
-    reconsidering: "Reconsidering — has been thinking about this",
+  const REASON_LABELS: Record<string, string> = {
+    replacing:  "Replacing something broken or worn out",
+    upgrading:  "Upgrading something they already have",
+    impulse:    "Impulse purchase — just caught their eye",
+    gift:       "Buying a gift for someone else",
+    considered: "Considered purchase — wanted this for a while",
   };
-  const AVOIDING_LABELS: Record<string, string> = {
-    overspending: "Avoiding overspending — wants value",
-    regret:       "Avoiding buyer's remorse",
-    unused:       "Avoiding buying something they won't use",
-    fomo:         "FOMO-driven, wants reassurance this is right",
-    none:         "No specific concern",
+  const OWNS_LABELS: Record<string, string> = {
+    no_new:     "Does not own anything similar — new category",
+    yes_broken: "Owns something similar but it is old or broken",
+    yes_works:  "Already owns something similar that works fine",
+  };
+  const NEED_LABELS: Record<string, string> = {
+    need_now:      "Genuine need — clear gap to fill",
+    nice_to_have:  "Nice to have, not essential",
+    want_not_need: "Wants it but could live without it",
+    not_sure:      "Unsure if they actually need it",
+  };
+  const PRIORITY_LABELS: Record<string, string> = {
+    value:     "Priority: best value for money",
+    quality:   "Priority: highest quality regardless of price",
+    no_regret: "Priority: avoiding regret above all",
+    quick:     "Priority: making a quick decision and moving on",
   };
   const intentLines = userIntent ? [
-    `Audience: ${AUDIENCE_LABELS[userIntent.audience]}`,
-    `Current mindset: ${MOOD_LABELS[userIntent.mood]}`,
-    `Trying to avoid: ${AVOIDING_LABELS[userIntent.avoiding]}`,
+    `Budget: ${BUDGET_LABELS[userIntent.budget] ?? userIntent.budget}`,
+    `Shopping reason: ${REASON_LABELS[userIntent.reason] ?? userIntent.reason}`,
+    `Owns something similar: ${OWNS_LABELS[userIntent.owns_similar] ?? userIntent.owns_similar}`,
+    `Need level: ${NEED_LABELS[userIntent.need_level] ?? userIntent.need_level}`,
+    `What matters most: ${PRIORITY_LABELS[userIntent.priority] ?? userIntent.priority}`,
   ].join("\n") : null;
 
   return `You are Worthly — a purchase outcome agent whose only job is protecting the buyer's money. You are NOT a shopping assistant. You do not help people buy things. You help people avoid bad purchases.
@@ -146,16 +162,24 @@ regret (0-100): How likely is the buyer to regret this purchase?
   - Cap at 95.
 
 INTENT MODIFIERS — apply after base scoring:
-  - audience = "self_impulse"   → add 15 to regret
-  - audience = "gift"           → fit cannot exceed 65 (you don't know recipient well enough)
-  - mood    = "decided"         → if BUY, mention any major risk you noticed; do not block the BUY
-  - mood    = "leaning_yes"     → be skeptical; lean toward WAIT unless evidence is strong
-  - mood    = "on_fence"        → be opinionated and decisive; this user wants a clear answer
-  - mood    = "reconsidering"   → lean toward SKIP unless something genuinely surprises you favorably; the buyer's own gut says don't
-  - avoiding = "overspending"   → cap value at 70 unless price is clearly below category average
-  - avoiding = "regret"         → add 10 to regret (they've felt this before)
-  - avoiding = "unused"         → flag any indicator of impulse/trend in regret reasoning
-  - avoiding = "fomo"           → explicitly call out if there's no real urgency; reassure that waiting is fine
+  - reason = "impulse"       → add 20 to regret (impulse buys regret easily)
+  - reason = "replacing"     → subtract 10 from regret (genuine need, clear purpose)
+  - reason = "considered"    → subtract 5 from regret (deliberate, not rushed)
+  - owns_similar = "yes_works" → add 30 to regret (already has one that works)
+  - owns_similar = "yes_works" → cap fit at 50 (hard to justify buying again)
+  - owns_similar = "yes_broken" → subtract 10 from regret (legitimate replacement)
+  - need_level = "want_not_need" → add 15 to regret
+  - need_level = "not_sure"      → add 10 to regret, verdict floors at WAIT
+  - need_level = "need_now"      → subtract 15 from regret
+  - priority = "no_regret"       → add 10 to regret (they regret easily — be careful)
+  - priority = "value"           → if product price seems above category average,
+                                    cap value score at 60
+  - priority = "quality"         → relax value scoring — user accepts paying more
+  - budget = "under_25"    → if price > $30,  cap value at 40 (over budget)
+  - budget = "from_25_75"  → if price > $80,  cap value at 45 (over budget)
+  - budget = "from_75_150" → if price > $160, cap value at 45 (over budget)
+  - budget = "from_150_300"→ if price > $320, cap value at 45 (over budget)
+  - budget = "over_300"    → no budget cap — user comfortable spending
 
 VERDICT LOGIC (apply in order — first match wins):
 1. SKIP if: value<55 OR regret≥55 OR (proof<40 AND verdictScore<55)
@@ -201,7 +225,9 @@ OUTPUT — strict JSON, no markdown:
 Always return 3-5 reasons. If data is missing, explicitly flag it in a reason (e.g. "No price listed — value cannot be assessed"). Never say "I cannot determine" — state what's missing and what that means for the verdict.
 
 FINAL CHECK before you respond:
-- If userIntent was provided, your verdict should explicitly reflect the user's stated mindset. If they said they're 'reconsidering,' you should not be giving a confident BUY without naming what changed your mind.
+- If userIntent was provided, your verdict must explicitly reference at least one of the user's stated preferences (budget, reason, need level, or priority). Generic verdicts that ignore the user context are not acceptable.
+- If owns_similar = "yes_works", the burden of proof for BUY is very high — the verdict must name a specific reason why buying again makes sense despite already owning a working version.
+- If need_level = "not_sure", do not issue a confident BUY. The user has not decided they need this — default to WAIT and help them think it through.
 - Read your verdict. Is it the kind of verdict a friend who knows shopping would say? Or is it polite restating of the product page?
 - If you said BUY: what specifically could go wrong for this buyer? Did you flag it?
 - If your reasons are all positive, that's a yellow flag — most products have real tradeoffs. Find at least one.

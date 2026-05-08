@@ -4,9 +4,11 @@ import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 
 export type IntentAnswers = {
-  audience: "self_planned" | "self_impulse" | "gift" | "household";
-  mood: "decided" | "leaning_yes" | "on_fence" | "reconsidering";
-  avoiding: "overspending" | "regret" | "unused" | "fomo" | "none";
+  budget: string;
+  reason: string;
+  owns_similar: string;
+  need_level: string;
+  priority: string;
 };
 
 interface Props {
@@ -16,25 +18,39 @@ interface Props {
 }
 
 const Q1 = [
-  { key: "self_planned", label: "For me, planned" },
-  { key: "self_impulse", label: "For me, on impulse" },
-  { key: "gift",         label: "A gift for someone else" },
-  { key: "household",    label: "For my household / family" },
+  { key: "under_25",     label: "Under $25" },
+  { key: "from_25_75",   label: "$25 – $75" },
+  { key: "from_75_150",  label: "$75 – $150" },
+  { key: "from_150_300", label: "$150 – $300" },
+  { key: "over_300",     label: "Over $300" },
 ] as const;
 
 const Q2 = [
-  { key: "decided",       label: "I'm sure I want it, just checking the price" },
-  { key: "leaning_yes",   label: "I'm leaning toward yes but want a sanity check" },
-  { key: "on_fence",      label: "I'm on the fence, talk me into it or out of it" },
-  { key: "reconsidering", label: "I keep reconsidering this — it's been on my mind" },
+  { key: "replacing",  label: "Replacing something broken or worn out" },
+  { key: "upgrading",  label: "Upgrading something I already have" },
+  { key: "impulse",    label: "It caught my eye — impulse buy" },
+  { key: "gift",       label: "Buying a gift for someone else" },
+  { key: "considered", label: "I've wanted this for a while" },
 ] as const;
 
 const Q3 = [
-  { key: "overspending", label: "Overspending — I want value" },
-  { key: "regret",       label: "Buyer's remorse — I want to feel good about it" },
-  { key: "unused",       label: "Owning something I won't use" },
-  { key: "fomo",         label: "Missing out — I want to be sure this is the right choice" },
-  { key: "none",         label: "Nothing in particular" },
+  { key: "no_new",     label: "No — usually buying something new to me" },
+  { key: "yes_broken", label: "Yes — replacing old or broken items" },
+  { key: "yes_works",  label: "Yes — even when what I have still works" },
+] as const;
+
+const Q4 = [
+  { key: "need_now",      label: "I need it now — clear gap to fill" },
+  { key: "nice_to_have",  label: "Nice to have, not essential" },
+  { key: "want_not_need", label: "I want it but could live without it" },
+  { key: "not_sure",      label: "Honestly not sure yet" },
+] as const;
+
+const Q5 = [
+  { key: "value",     label: "Best value for the price" },
+  { key: "quality",   label: "Highest quality, price is secondary" },
+  { key: "no_regret", label: "Not regretting it later" },
+  { key: "quick",     label: "Making a quick decision and moving on" },
 ] as const;
 
 function QuestionBlock({
@@ -85,12 +101,20 @@ function QuestionBlock({
 }
 
 export default function IntentModal({ open, onSubmit, onSkip }: Props) {
-  const [audience, setAudience] = useState("");
-  const [mood,     setMood]     = useState("");
-  const [avoiding, setAvoiding] = useState("");
+  const [budget,      setBudget]      = useState("");
+  const [reason,      setReason]      = useState("");
+  const [ownsSimilar, setOwnsSimilar] = useState("");
+  const [needLevel,   setNeedLevel]   = useState("");
+  const [priority,    setPriority]    = useState("");
 
   useEffect(() => {
-    if (open) { setAudience(""); setMood(""); setAvoiding(""); }
+    if (open) {
+      setBudget("");
+      setReason("");
+      setOwnsSimilar("");
+      setNeedLevel("");
+      setPriority("");
+    }
   }, [open]);
 
   useEffect(() => {
@@ -102,7 +126,7 @@ export default function IntentModal({ open, onSubmit, onSkip }: Props) {
 
   if (!open) return null;
 
-  const allAnswered = !!audience && !!mood && !!avoiding;
+  const allAnswered = !!budget && !!reason && !!ownsSimilar && !!needLevel && !!priority;
 
   return (
     <div
@@ -136,33 +160,49 @@ export default function IntentModal({ open, onSubmit, onSkip }: Props) {
         <div className="px-6 pb-6 space-y-6">
           <QuestionBlock
             number={1}
-            question="Who is this purchase for?"
+            question="What's your budget for this?"
             options={Q1}
-            value={audience}
-            onChange={setAudience}
+            value={budget}
+            onChange={setBudget}
           />
           <QuestionBlock
             number={2}
-            question="How are you feeling about this purchase right now?"
+            question="Why are you buying this?"
             options={Q2}
-            value={mood}
-            onChange={setMood}
+            value={reason}
+            onChange={setReason}
           />
           <QuestionBlock
             number={3}
-            question="Is there anything you're trying to avoid?"
+            question="Do you already own something similar?"
             options={Q3}
-            value={avoiding}
-            onChange={setAvoiding}
+            value={ownsSimilar}
+            onChange={setOwnsSimilar}
+          />
+          <QuestionBlock
+            number={4}
+            question="How much do you actually need this?"
+            options={Q4}
+            value={needLevel}
+            onChange={setNeedLevel}
+          />
+          <QuestionBlock
+            number={5}
+            question="What matters most to you?"
+            options={Q5}
+            value={priority}
+            onChange={setPriority}
           />
 
           <div className="flex flex-col gap-2 pt-2 border-t border-stone-50">
             <button
               onClick={() =>
                 onSubmit({
-                  audience: audience as IntentAnswers["audience"],
-                  mood:     mood     as IntentAnswers["mood"],
-                  avoiding: avoiding as IntentAnswers["avoiding"],
+                  budget,
+                  reason,
+                  owns_similar: ownsSimilar,
+                  need_level:   needLevel,
+                  priority,
                 })
               }
               disabled={!allAnswered}

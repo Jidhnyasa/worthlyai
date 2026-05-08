@@ -16,31 +16,39 @@ If verdict JSON is provided in the context, use it directly — do not re-derive
 Be specific, honest, and concise. If something is a bad deal, say so plainly.`;
 
 // ── userIntent validator ─────────────────────────────────────────────────────
-const AUDIENCE_VALS = ["self_planned", "self_impulse", "gift", "household"] as const;
-const MOOD_VALS     = ["decided", "leaning_yes", "on_fence", "reconsidering"] as const;
-const AVOIDING_VALS = ["overspending", "regret", "unused", "fomo", "none"] as const;
-
-type UserIntent = {
-  audience: typeof AUDIENCE_VALS[number];
-  mood:     typeof MOOD_VALS[number];
-  avoiding: typeof AVOIDING_VALS[number];
-};
-
-function parseUserIntent(raw: unknown): UserIntent | null {
+function parseUserIntent(raw: unknown): {
+  budget: string;
+  reason: string;
+  owns_similar: string;
+  need_level: string;
+  priority: string;
+} | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
+
+  const VALID_BUDGET   = ["under_25","from_25_75","from_75_150","from_150_300","over_300"];
+  const VALID_REASON   = ["replacing","upgrading","impulse","gift","considered"];
+  const VALID_OWNS     = ["no_new","yes_broken","yes_works"];
+  const VALID_NEED     = ["need_now","nice_to_have","want_not_need","not_sure"];
+  const VALID_PRIORITY = ["value","quality","no_regret","quick"];
+
   if (
-    !AUDIENCE_VALS.includes(r.audience as any) ||
-    !MOOD_VALS.includes(r.mood as any) ||
-    !AVOIDING_VALS.includes(r.avoiding as any)
+    !VALID_BUDGET.includes(r.budget as string) ||
+    !VALID_REASON.includes(r.reason as string) ||
+    !VALID_OWNS.includes(r.owns_similar as string) ||
+    !VALID_NEED.includes(r.need_level as string) ||
+    !VALID_PRIORITY.includes(r.priority as string)
   ) {
     console.warn(`[verdict] invalid userIntent — discarding:`, JSON.stringify(r));
     return null;
   }
+
   return {
-    audience: r.audience as UserIntent["audience"],
-    mood:     r.mood     as UserIntent["mood"],
-    avoiding: r.avoiding as UserIntent["avoiding"],
+    budget:       r.budget as string,
+    reason:       r.reason as string,
+    owns_similar: r.owns_similar as string,
+    need_level:   r.need_level as string,
+    priority:     r.priority as string,
   };
 }
 
