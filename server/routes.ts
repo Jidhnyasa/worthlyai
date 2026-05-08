@@ -443,5 +443,26 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // ── POST /api/beta-signup ────────────────────────────────────────────────────
+  app.post("/api/beta-signup", async (req, res) => {
+    const { email } = req.body as { email?: string };
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+      return res.status(400).json({ error: "Valid email is required" });
+    }
+    try {
+      const { db } = await import("./storage.js");
+      const { sql } = await import("drizzle-orm");
+      await db.execute(sql`
+        INSERT INTO beta_signups (email, source)
+        VALUES (${email.trim().toLowerCase()}, 'install_page')
+        ON CONFLICT (email) DO NOTHING
+      `);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("/api/beta-signup error:", err);
+      res.status(500).json({ error: "Failed to sign up" });
+    }
+  });
+
   return httpServer;
 }

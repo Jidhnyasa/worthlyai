@@ -8,6 +8,7 @@ import HashCompatRedirect from "@/components/HashCompatRedirect";
 import LandingPage    from "@/pages/landing";
 import NotFound       from "@/pages/not-found";
 import AuthPage       from "@/pages/auth";
+import InstallPage    from "@/pages/install";
 
 // App core (purchase protection)
 import DashboardPage      from "@/pages/dashboard";
@@ -39,6 +40,7 @@ export default function App() {
         {/* ── Marketing ── */}
         <Route path="/" component={LandingPage} />
         <Route path="/auth" component={AuthPage} />
+        <Route path="/install" component={InstallPage} />
 
         {/* ── App: purchase protection ── */}
         <Route path="/app"               component={DashboardPage} />
