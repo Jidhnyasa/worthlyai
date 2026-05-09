@@ -9,6 +9,7 @@ import LandingPage    from "@/pages/landing";
 import NotFound       from "@/pages/not-found";
 import AuthPage       from "@/pages/auth";
 import InstallPage    from "@/pages/install";
+import PrivacyPage    from "@/pages/privacy";
 
 // App core (purchase protection)
 import DashboardPage      from "@/pages/dashboard";
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/" component={LandingPage} />
         <Route path="/auth" component={AuthPage} />
         <Route path="/install" component={InstallPage} />
+        <Route path="/privacy" component={PrivacyPage} />
 
         {/* ── App: purchase protection ── */}
         <Route path="/app"               component={DashboardPage} />
