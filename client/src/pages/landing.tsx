@@ -1363,6 +1363,7 @@ export default function LandingPage() {
             <Link href="/saved" className="hover:text-white/50 transition-colors">Saved</Link>
             <Link href="/app/verdicts" className="hover:text-white/50 transition-colors">Ask Worthly AI</Link>
             <Link href="/settings" className="hover:text-white/50 transition-colors">Settings</Link>
+            <Link href="/privacy" className="hover:text-white/50 transition-colors">Privacy</Link>
           </div>
         </div>
       </footer>
