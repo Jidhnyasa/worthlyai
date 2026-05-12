@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { applySeo } from "@/lib/seo";
 import Navbar from "@/components/Navbar";
@@ -587,6 +587,7 @@ export default function DashboardPage() {
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
   const verdictRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
+  const [, navigate] = useLocation();
 
   const saveMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) =>
@@ -847,6 +848,25 @@ export default function DashboardPage() {
               isSaving={saveMutation.isPending}
               onAction={handleAction}
             />
+            <button
+              onClick={() => {
+                const encoded = btoa(JSON.stringify({
+                  title: verdict.scraped.title,
+                  merchant: verdict.scraped.merchant,
+                  price: verdict.scraped.price,
+                  verdict: verdict.verdict,
+                  verdictScore: verdict.verdictScore,
+                  reasons: verdict.reasons,
+                  scores: verdict.scores,
+                  imageUrl: verdict.scraped.imageUrl,
+                }));
+                navigate(`/app/verdicts?verdict=${encoded}`);
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-stone-200 text-sm font-medium text-stone-600 hover:border-stone-300 hover:bg-stone-50 transition-all mt-3"
+            >
+              <MessageSquare className="w-4 h-4" />
+              Chat about this verdict →
+            </button>
             <VerdictChat verdictContext={JSON.stringify({ verdict: verdict.verdict, headline: verdict.headline, reasons: verdict.reasons, scores: verdict.scores, scraped: verdict.scraped })} />
           </section>
         )}

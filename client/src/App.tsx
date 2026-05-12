@@ -26,7 +26,8 @@ import HistoryPage    from "@/pages/history";
 import SettingsPage   from "@/pages/settings";
 
 // Discover: form-based product search
-import DiscoverPage from "@/pages/app";
+import DiscoverPage   from "@/pages/app";
+import VerdictsPage   from "@/pages/verdicts";
 
 // Public discovery pages
 import VerdictSlugPage  from "@/pages/verdict-slug";
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/app/actions"       component={ActionsPage} />
         <Route path="/app/discover"      component={DiscoverPage} />
         <Route path="/app/mine"          component={MinePage} />
+        <Route path="/app/verdicts"      component={VerdictsPage} />
 
         {/* ── App utilities ── */}
         <Route path="/onboarding" component={OnboardingPage} />
