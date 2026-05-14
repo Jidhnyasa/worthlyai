@@ -629,10 +629,13 @@ export default function DashboardPage() {
     setVerdict(null);
     setIsSaved(false);
 
+    const profileRaw = localStorage.getItem("worthly_onboarding_complete");
+    const userProfile = profileRaw ? (() => { try { return JSON.parse(profileRaw); } catch { return null; } })() : null;
+
     try {
       const res = await apiRequest(
         "POST", "/api/verdict/url",
-        { url: trimmed, userIntent: intent ?? undefined },
+        { url: trimmed, userIntent: intent ?? undefined, userProfile: userProfile ?? undefined },
         { "x-session-id": getSessionId() },
       );
       if (res.status === 402) {

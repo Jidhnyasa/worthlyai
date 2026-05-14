@@ -296,7 +296,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // ── POST /api/verdict/url ────────────────────────────────────────────────────
   // Full URL verdict: scrapes DOM, injects user context, rate-limits anonymous users.
   app.post("/api/verdict/url", async (req, res) => {
-    const { url, userIntent: rawIntent } = req.body as { url?: string; userIntent?: unknown };
+    const { url, userIntent: rawIntent, userProfile: rawProfile } = req.body as {
+    url?: string;
+    userIntent?: unknown;
+    userProfile?: unknown;
+  };
     if (!url || typeof url !== "string") {
       return res.status(400).json({ error: "url is required" });
     }
@@ -323,6 +327,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     const userIntent = parseUserIntent(rawIntent);
     console.log(`[verdict] userIntent provided: ${!!userIntent}`);
+    const userProfile = (rawProfile && typeof rawProfile === "object" && !Array.isArray(rawProfile))
+      ? rawProfile as Record<string, string>
+      : undefined;
 
     try {
       // 1. Scrape
@@ -345,7 +352,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       // 3. Verdict
-      const verdict = await getVerdictForUrl({ url, scraped, userContext, userIntent: userIntent ?? undefined });
+      const verdict = await getVerdictForUrl({ url, scraped, userContext, userIntent: userIntent ?? undefined, userProfile });
 
       // 4. Persist (best-effort)
       let queryId: string | undefined;

@@ -31,6 +31,18 @@ export interface VerdictInput {
     goals?: string[];             // "save_money" | "reduce_impulse" | "minimalism" | "quality_over_quantity"
     sensitiveTo?: string[];       // "fake_sales" | "duplicate_purchases" | "overpriced_premium"
   };
+  userProfile?: {
+    buying_style: string;
+    regret_frequency: string;
+    overspend_trigger: string;
+    budget_discipline: string;
+    duplicate_tendency: string;
+    influence_source: string;
+    household: string;
+    return_attitude: string;
+    quality_orientation: string;
+    shopping_timing: string;
+  };
 }
 
 export interface VerdictOutput {
@@ -56,7 +68,7 @@ export interface VerdictOutput {
 const CATEGORIES = ["electronics", "fashion", "beauty", "home", "fitness", "baby", "gifting"];
 
 function buildPrompt(input: VerdictInput): string {
-  const { scraped, userContext, userIntent, url } = input;
+  const { scraped, userContext, userIntent, userProfile, url } = input;
 
   const productLines = [
     `URL: ${url}`,
@@ -110,6 +122,84 @@ function buildPrompt(input: VerdictInput): string {
     no_regret: "Priority: avoiding regret above all",
     quick:     "Priority: making a quick decision and moving on",
   };
+  const BUYING_STYLE_LABELS: Record<string, string> = {
+    researcher: "Researches extensively before buying",
+    considered: "Spends hours comparing before deciding",
+    quick:      "Reads a few reviews then decides quickly",
+    impulse:    "Impulse buyer — sees it, wants it, buys it",
+  };
+  const REGRET_FREQ_LABELS: Record<string, string> = {
+    rarely:     "Rarely regrets purchases — very selective",
+    sometimes:  "Regrets purchases occasionally",
+    often:      "Frequently regrets purchases — has unused items",
+    very_often: "Very frequent regret — returns things often",
+  };
+  const OVERSPEND_LABELS: Record<string, string> = {
+    sale:         "Triggered by sales and discounts",
+    emotional:    "Triggered by boredom or stress",
+    rationalized: "Rationalizes needs after the fact",
+    fomo:         "Influenced by social media and FOMO",
+    rarely:       "Rarely overspends",
+  };
+  const BUDGET_DISC_LABELS: Record<string, string> = {
+    strict:     "Strict budget adherent",
+    flexible:   "Flexible budget, occasionally overspends",
+    want_based: "Budget based on desire, not limits",
+    untracked:  "Does not track spending",
+  };
+  const DUPLICATE_LABELS: Record<string, string> = {
+    no_new:      "Only buys when genuinely needs something new",
+    replacement: "Buys as genuine replacement",
+    upgrader:    "Regular upgrader of existing items",
+    duplicator:  "Tends to accumulate duplicates",
+  };
+  const INFLUENCE_LABELS: Record<string, string> = {
+    self:          "Self-directed, independent researcher",
+    reviews:       "Relies on product page reviews",
+    trusted_sites: "Uses Reddit, YouTube, trusted reviewers",
+    social:        "Influenced by social circle and influencers",
+    deals:         "Deal-driven, responds to sales and urgency",
+  };
+  const HOUSEHOLD_LABELS: Record<string, string> = {
+    solo:       "Single person household",
+    couple:     "Couple, no kids",
+    young_kids: "Family with children under 5",
+    kids_5_12:  "Family with school-age children 5-12",
+    teenagers:  "Family with teenagers",
+    multi_gen:  "Multi-generational household",
+  };
+  const RETURN_LABELS: Record<string, string> = {
+    easy:     "Returns easily, low friction threshold",
+    annoying: "Returns occasionally but finds it annoying",
+    avoidant: "Avoids returns — finds it too much hassle",
+    never:    "Almost never returns anything",
+  };
+  const QUALITY_LABELS: Record<string, string> = {
+    quality_first:  "Quality-first, price is secondary",
+    quality_budget: "Best quality within budget",
+    value:          "Value-oriented — most for least money",
+    cheapest:       "Buys cheapest option that works",
+  };
+  const TIMING_LABELS: Record<string, string> = {
+    planned:    "Planned, deliberate shopper",
+    browsing:   "Discovery-based browser",
+    late_night: "Late night shopper",
+    emotional:  "Emotional/stress shopper",
+    all:        "Mixed shopping patterns",
+  };
+  const profileLines = userProfile ? [
+    `Buying style: ${BUYING_STYLE_LABELS[userProfile.buying_style] ?? userProfile.buying_style}`,
+    `Regret frequency: ${REGRET_FREQ_LABELS[userProfile.regret_frequency] ?? userProfile.regret_frequency}`,
+    `Overspend trigger: ${OVERSPEND_LABELS[userProfile.overspend_trigger] ?? userProfile.overspend_trigger}`,
+    `Budget discipline: ${BUDGET_DISC_LABELS[userProfile.budget_discipline] ?? userProfile.budget_discipline}`,
+    `Duplicate tendency: ${DUPLICATE_LABELS[userProfile.duplicate_tendency] ?? userProfile.duplicate_tendency}`,
+    `Main influence: ${INFLUENCE_LABELS[userProfile.influence_source] ?? userProfile.influence_source}`,
+    `Household: ${HOUSEHOLD_LABELS[userProfile.household] ?? userProfile.household}`,
+    `Return attitude: ${RETURN_LABELS[userProfile.return_attitude] ?? userProfile.return_attitude}`,
+    `Quality orientation: ${QUALITY_LABELS[userProfile.quality_orientation] ?? userProfile.quality_orientation}`,
+    `Shopping timing: ${TIMING_LABELS[userProfile.shopping_timing] ?? userProfile.shopping_timing}`,
+  ].join("\n") : null;
+
   const intentLines = userIntent ? [
     `Budget: ${BUDGET_LABELS[userIntent.budget] ?? userIntent.budget}`,
     `Shopping reason: ${REASON_LABELS[userIntent.reason] ?? userIntent.reason}`,
@@ -181,6 +271,25 @@ INTENT MODIFIERS — apply after base scoring:
   - budget = "from_150_300"→ if price > $320, cap value at 45 (over budget)
   - budget = "over_300"    → no budget cap — user comfortable spending
 
+PROFILE MODIFIERS — apply if USER PROFILE is present:
+  - buying_style = "impulse" → add 25 to regret, require extra scrutiny before BUY
+  - buying_style = "researcher" → subtract 10 from regret, user makes deliberate choices
+  - regret_frequency = "often" or "very_often" → add 15 to regret baseline, floor verdict at WAIT unless proof ≥ 70 AND value ≥ 65
+  - overspend_trigger = "fomo" → add 20 to regret on trending or viral products
+  - overspend_trigger = "sale" → explicitly call out if discount seems manufactured or price history is unknown
+  - overspend_trigger = "emotional" → add 15 to regret, add reason flagging emotional purchase risk
+  - budget_discipline = "untracked" → treat all purchases as potentially over-budget, value cap 60
+  - duplicate_tendency = "duplicator" → add 35 to regret, cap fit at 40, require very strong justification for BUY
+  - influence_source = "social" → add 20 to regret on trending items, flag if product appears driven by social media popularity
+  - influence_source = "deals" → explicitly evaluate whether the price is genuinely good or manufactured urgency
+  - return_attitude = "avoidant" or "never" → increase conservatism significantly — this user cannot easily undo a bad purchase. Add 15 to regret and require proof ≥ 65 for BUY
+  - quality_orientation = "cheapest" → flag if product shows quality warning signals in reviews
+  - quality_orientation = "quality_first" → relax value scoring, focus on proof and durability signals
+  - shopping_timing = "late_night" → add 15 to regret (research-backed: late night impulse purchases have higher regret rates)
+  - shopping_timing = "emotional" → add 20 to regret, explicitly mention this in a reason if firing SKIP
+  - household = "young_kids" → prioritize safety, durability, and practicality signals in baby/home categories
+  - household = "solo" → no household budget splitting, full purchase cost falls on one person
+
 VERDICT LOGIC (apply in order — first match wins):
 1. SKIP if: value<55 OR regret≥55 OR (proof<40 AND verdictScore<55)
 2. WAIT if: fit<72 OR proof<55 OR (regret≥40 AND value<70)
@@ -236,7 +345,7 @@ FINAL CHECK before you respond:
 PRODUCT:
 ${productLines}
 
-${intentLines ? `USER INTENT:\n${intentLines}\n\n` : ""}${userLines ? `USER CONTEXT:\n${userLines}\n` : ""}
+${profileLines ? `USER PROFILE:\n${profileLines}\n\n` : ""}${intentLines ? `USER INTENT:\n${intentLines}\n\n` : ""}${userLines ? `USER CONTEXT:\n${userLines}\n` : ""}
 Output JSON verdict now.`;
 }
 

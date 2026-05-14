@@ -1,277 +1,268 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { ArrowRight, ArrowLeft, Check, Sparkles } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const CATEGORIES = [
-  { value: "fashion",     emoji: "👗", label: "Fashion" },
-  { value: "beauty",      emoji: "💄", label: "Beauty" },
-  { value: "electronics", emoji: "🎧", label: "Electronics" },
-  { value: "home",        emoji: "🏠", label: "Home" },
-  { value: "baby",        emoji: "🍼", label: "Baby" },
-  { value: "fitness",     emoji: "🏃", label: "Fitness" },
-  { value: "gifting",     emoji: "🎁", label: "Gifting" },
-  { value: "accessories", emoji: "⌚", label: "Accessories" },
-];
+const QUESTIONS = [
+  {
+    key: "buying_style",
+    label: "How do you usually decide to buy something online?",
+    options: [
+      { key: "researcher", label: "I research for days before buying anything" },
+      { key: "considered", label: "I spend a few hours comparing options" },
+      { key: "quick",      label: "I read a few reviews then decide quickly" },
+      { key: "impulse",    label: "I see it, I want it, I buy it" },
+    ],
+  },
+  {
+    key: "regret_frequency",
+    label: "How often do you regret an online purchase?",
+    options: [
+      { key: "rarely",     label: "Rarely — I'm pretty selective" },
+      { key: "sometimes",  label: "Sometimes — maybe once every few months" },
+      { key: "often",      label: "Often — I have things I barely used" },
+      { key: "very_often", label: "Very often — I return things constantly" },
+    ],
+  },
+  {
+    key: "overspend_trigger",
+    label: "When you overspend on something, what usually happened?",
+    options: [
+      { key: "sale",         label: "A sale made it feel like a deal" },
+      { key: "emotional",    label: "I was bored or stressed" },
+      { key: "rationalized", label: "I convinced myself I needed it" },
+      { key: "fomo",         label: "Someone I follow had it" },
+      { key: "rarely",       label: "I don't overspend much" },
+    ],
+  },
+  {
+    key: "budget_discipline",
+    label: "How does your budget work when you shop?",
+    options: [
+      { key: "strict",     label: "I have a strict budget and stick to it" },
+      { key: "flexible",   label: "I have a rough number but go over sometimes" },
+      { key: "want_based", label: "I decide based on how much I want it" },
+      { key: "untracked",  label: "I don't track spending much" },
+    ],
+  },
+  {
+    key: "duplicate_tendency",
+    label: "Do you tend to buy things you already own a version of?",
+    options: [
+      { key: "no_new",      label: "No — I only buy when I genuinely need something new" },
+      { key: "replacement", label: "Sometimes — when mine is worn out or broken" },
+      { key: "upgrader",    label: "Yes — I upgrade things I already own regularly" },
+      { key: "duplicator",  label: "Honestly yes — I have duplicates of things" },
+    ],
+  },
+  {
+    key: "influence_source",
+    label: "Who or what influences your purchases most?",
+    options: [
+      { key: "self",          label: "My own research and judgment" },
+      { key: "reviews",       label: "Reviews and ratings on the product page" },
+      { key: "trusted_sites", label: "Reddit, YouTube, or trusted review sites" },
+      { key: "social",        label: "Friends, family, or people I follow online" },
+      { key: "deals",         label: "Sales, deals, and limited-time offers" },
+    ],
+  },
+  {
+    key: "household",
+    label: "What's your household situation?",
+    options: [
+      { key: "solo",       label: "Just me" },
+      { key: "couple",     label: "Me and a partner" },
+      { key: "young_kids", label: "Family with kids under 5" },
+      { key: "kids_5_12",  label: "Family with kids 5–12" },
+      { key: "teenagers",  label: "Family with teenagers" },
+      { key: "multi_gen",  label: "Multi-generational household" },
+    ],
+  },
+  {
+    key: "return_attitude",
+    label: "How do you feel about returning things?",
+    options: [
+      { key: "easy",     label: "I return things easily — no guilt, it's my right" },
+      { key: "annoying", label: "I return sometimes but find it annoying" },
+      { key: "avoidant", label: "I avoid returns — too much hassle" },
+      { key: "never",    label: "I almost never return anything" },
+    ],
+  },
+  {
+    key: "quality_orientation",
+    label: "What's your relationship with quality vs. price?",
+    options: [
+      { key: "quality_first",  label: "I always go for the best quality, price is secondary" },
+      { key: "quality_budget", label: "I find the best quality within my budget" },
+      { key: "value",          label: "I find the best value — most for least money" },
+      { key: "cheapest",       label: "I buy the cheapest thing that works" },
+    ],
+  },
+  {
+    key: "shopping_timing",
+    label: "When do you usually shop online?",
+    options: [
+      { key: "planned",    label: "Planned — I know what I need before I look" },
+      { key: "browsing",   label: "Browsing — I find things while looking around" },
+      { key: "late_night", label: "Late night — I shop when I can't sleep" },
+      { key: "emotional",  label: "Emotional — when I'm stressed, bored, or celebrating" },
+      { key: "all",        label: "All of the above honestly" },
+    ],
+  },
+] as const;
 
-const BUDGET_STYLES = [
-  { value: "budget",    label: "Budget-conscious",        desc: "I want the best value at the lowest price" },
-  { value: "balanced",  label: "Balanced",                desc: "I weigh quality and price equally" },
-  { value: "quality",   label: "Willing to pay for quality", desc: "Quality matters more than price" },
-  { value: "premium",   label: "Premium-first",           desc: "I buy the best and don't think about cost" },
-];
-
-const MOODS = [
-  { value: "minimal",   emoji: "⬜", label: "Minimal" },
-  { value: "cozy",      emoji: "🛋️", label: "Cozy" },
-  { value: "polished",  emoji: "✨", label: "Polished" },
-  { value: "playful",   emoji: "🎨", label: "Playful" },
-  { value: "sporty",    emoji: "⚡", label: "Sporty" },
-  { value: "luxurious", emoji: "💎", label: "Luxurious" },
-  { value: "bold",      emoji: "🔥", label: "Bold" },
-  { value: "soft",      emoji: "🌸", label: "Soft" },
-];
-
-const LIFESTYLE_TAGS = [
-  "Remote worker", "Parent", "Traveler", "Fitness enthusiast", "Fashionista",
-  "Minimalist", "Environmentally conscious", "Tech enthusiast", "Foodie", "Gamer",
-];
-
-const STEPS = [
-  { title: "What do you shop for?", subtitle: "Pick all that apply" },
-  { title: "How do you approach budget?", subtitle: "Choose your style" },
-  { title: "Brand preferences", subtitle: "Help us avoid brands you dislike or favor ones you love" },
-  { title: "Your personal vibe", subtitle: "Select your style personality" },
-  { title: "Tell us about you", subtitle: "Optional — for better personalization" },
-];
+type QuestionKey = typeof QUESTIONS[number]["key"];
+type Answers = Partial<Record<QuestionKey, string>>;
 
 export default function OnboardingPage() {
-  const [, navigate] = useLocation();
-  const [step, setStep] = useState(0);
+  const [, navigate]          = useLocation();
+  const [answers, setAnswers] = useState<Answers>({});
+  const [email, setEmail]     = useState("");
 
-  // Answers
-  const [categories, setCategories]     = useState<string[]>([]);
-  const [budgetStyle, setBudgetStyle]   = useState("");
-  const [favBrands, setFavBrands]       = useState("");
-  const [badBrands, setBadBrands]       = useState("");
-  const [moods, setMoods]               = useState<string[]>([]);
-  const [lifestyleTags, setLifestyle]   = useState<string[]>([]);
+  const answered    = QUESTIONS.filter(q => answers[q.key]).length;
+  const allAnswered = answered === QUESTIONS.length;
 
-  const total = STEPS.length;
-  const progress = ((step + 1) / total) * 100;
+  function handleSubmit() {
+    const payload = {
+      buying_style:        answers.buying_style!,
+      regret_frequency:    answers.regret_frequency!,
+      overspend_trigger:   answers.overspend_trigger!,
+      budget_discipline:   answers.budget_discipline!,
+      duplicate_tendency:  answers.duplicate_tendency!,
+      influence_source:    answers.influence_source!,
+      household:           answers.household!,
+      return_attitude:     answers.return_attitude!,
+      quality_orientation: answers.quality_orientation!,
+      shopping_timing:     answers.shopping_timing!,
+      email:               email.trim(),
+      completed_at:        new Date().toISOString(),
+      version:             "2",
+    };
 
-  function toggleCategory(v: string) {
-    setCategories(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
+    localStorage.setItem("worthly_onboarding_complete", JSON.stringify(payload));
+
+    if (payload.email && payload.email.includes("@")) {
+      fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: payload.email, source: "onboarding_v2" }),
+      }).catch(() => {});
+    }
+
+    navigate("/app");
   }
-  function toggleMood(v: string) {
-    setMoods(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
-  }
-  function toggleLifestyle(v: string) {
-    setLifestyle(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
-  }
 
-  async function handleFinish() {
-    try {
-      await apiRequest("POST", "/api/preferences", {
-        categories,
-        budgetStyle: budgetStyle || "balanced",
-        favoriteBrands: favBrands.split(",").map(s => s.trim()).filter(Boolean),
-        dislikedBrands: badBrands.split(",").map(s => s.trim()).filter(Boolean),
-        moods,
-        lifestyleTags,
-      });
-    } catch {}
+  function handleSkip() {
+    localStorage.setItem("worthly_onboarding_complete", JSON.stringify({ skipped: true }));
     navigate("/app");
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "hsl(38 25% 97%)" }}>
-      {/* Header */}
-      <div className="max-w-xl mx-auto w-full px-6 pt-8 pb-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "hsl(32 95% 54%)" }}>
-            <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4">
-              <path d="M3 5L6 15L9 9L12 15L15 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <span className="font-bold text-base">Worthly AI</span>
-          <span className="ml-auto text-xs text-muted-foreground">{step + 1} / {total}</span>
-        </div>
-        <Progress value={progress} className="h-1.5" />
-      </div>
+    <div className="min-h-screen py-10 px-4" style={{ background: "hsl(38 25% 97%)" }}>
+      <div className="mx-auto" style={{ maxWidth: 560 }}>
+        <div className="bg-white border border-stone-200 shadow-sm rounded-xl">
 
-      {/* Step content */}
-      <div className="flex-1 max-w-xl mx-auto w-full px-6 py-4">
-        <div className="animate-slide-up space-y-6" key={step}>
-          <div className="space-y-1">
-            <h1 className="font-bold text-xl">{STEPS[step].title}</h1>
-            <p className="text-sm text-muted-foreground">{STEPS[step].subtitle}</p>
+          {/* Header */}
+          <div className="flex flex-col items-center pt-8 pb-4 px-8 text-center">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-lg mb-4"
+              style={{ background: "hsl(32 95% 54%)" }}
+            >
+              W
+            </div>
+            <h1 className="text-xl font-bold text-stone-900 tracking-tight">
+              Help us give you sharper verdicts
+            </h1>
+            <p className="text-sm text-stone-500 mt-1 leading-relaxed">
+              10 quick questions. Takes 90 seconds. Makes every verdict specific to how you actually shop.
+            </p>
           </div>
 
-          {/* Step 0: Categories */}
-          {step === 0 && (
-            <div className="grid grid-cols-2 gap-3">
-              {CATEGORIES.map(c => (
-                <button
-                  key={c.value}
-                  onClick={() => toggleCategory(c.value)}
-                  data-testid={`onboarding-category-${c.value}`}
-                  className={cn(
-                    "flex items-center gap-3 p-4 rounded-2xl border text-left transition-all",
-                    categories.includes(c.value)
-                      ? "border-primary/40 bg-primary/5"
-                      : "border-border bg-card hover:border-primary/20"
-                  )}
-                >
-                  <span className="text-2xl">{c.emoji}</span>
-                  <div>
-                    <p className="font-semibold text-sm">{c.label}</p>
-                  </div>
-                  {categories.includes(c.value) && (
-                    <Check className="w-4 h-4 text-primary ml-auto shrink-0" />
-                  )}
-                </button>
-              ))}
+          {/* Progress bar */}
+          <div className="px-8 pb-2">
+            <div className="w-full h-1 rounded-full bg-stone-100 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-orange-400 transition-all duration-300"
+                style={{ width: `${(answered / QUESTIONS.length) * 100}%` }}
+              />
             </div>
-          )}
+            <p className="text-xs text-stone-400 text-right mt-1">{answered} of 10 answered</p>
+          </div>
 
-          {/* Step 1: Budget style */}
-          {step === 1 && (
-            <div className="space-y-3">
-              {BUDGET_STYLES.map(b => (
-                <button
-                  key={b.value}
-                  onClick={() => setBudgetStyle(b.value)}
-                  data-testid={`onboarding-budget-${b.value}`}
-                  className={cn(
-                    "w-full flex items-center gap-4 p-4 rounded-2xl border text-left transition-all",
-                    budgetStyle === b.value
-                      ? "border-primary/40 bg-primary/5"
-                      : "border-border bg-card hover:border-primary/20"
-                  )}
-                >
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm">{b.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{b.desc}</p>
-                  </div>
-                  {budgetStyle === b.value && (
-                    <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
-                      <Check className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Step 2: Brand preferences */}
-          {step === 2 && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Brands you love</label>
-                <Input
-                  value={favBrands}
-                  onChange={e => setFavBrands(e.target.value)}
-                  placeholder="Nike, Apple, Patagonia, Levi's..."
-                  data-testid="onboarding-fav-brands"
-                />
-                <p className="text-xs text-muted-foreground">Separate brands with commas</p>
+          <div className="px-8 pb-8">
+            {/* Questions */}
+            {QUESTIONS.map((q, qi) => (
+              <div key={q.key} className={qi === 0 ? "mt-2" : "mt-6"}>
+                <p className="text-[13px] font-medium text-stone-800 mb-2">{q.label}</p>
+                <div className="flex flex-col gap-1.5">
+                  {q.options.map((opt) => {
+                    const selected = answers[q.key] === opt.key;
+                    return (
+                      <div
+                        key={opt.key}
+                        onClick={() => setAnswers(prev => ({ ...prev, [q.key]: opt.key }))}
+                        className={cn(
+                          "w-full text-left cursor-pointer rounded-xl flex items-center justify-between",
+                          selected
+                            ? "bg-orange-50/40 text-stone-900"
+                            : "bg-white text-stone-600 hover:bg-stone-50 hover:border-stone-300"
+                        )}
+                        style={{
+                          padding: "10px 14px",
+                          border: `1.5px solid ${selected ? "hsl(32 95% 54%)" : "hsl(214 32% 91%)"}`,
+                          transition: "all 150ms ease",
+                        }}
+                      >
+                        <span className="text-sm leading-snug">{opt.label}</span>
+                        {selected && (
+                          <Check className="w-4 h-4 shrink-0 ml-3" style={{ color: "hsl(32 95% 54%)" }} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Brands to avoid</label>
-                <Input
-                  value={badBrands}
-                  onChange={e => setBadBrands(e.target.value)}
-                  placeholder="Brands you don't like..."
-                  data-testid="onboarding-bad-brands"
-                />
-              </div>
-            </div>
-          )}
+            ))}
 
-          {/* Step 3: Vibes */}
-          {step === 3 && (
-            <div className="grid grid-cols-2 gap-3">
-              {MOODS.map(m => (
-                <button
-                  key={m.value}
-                  onClick={() => toggleMood(m.value)}
-                  data-testid={`onboarding-mood-${m.value}`}
-                  className={cn(
-                    "flex items-center gap-3 p-4 rounded-2xl border text-left transition-all",
-                    moods.includes(m.value)
-                      ? "border-primary/40 bg-primary/5"
-                      : "border-border bg-card hover:border-primary/20"
-                  )}
-                >
-                  <span className="text-2xl">{m.emoji}</span>
-                  <p className="font-semibold text-sm">{m.label}</p>
-                  {moods.includes(m.value) && (
-                    <Check className="w-4 h-4 text-primary ml-auto" />
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Step 4: Lifestyle */}
-          {step === 4 && (
-            <div className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                {LIFESTYLE_TAGS.map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleLifestyle(tag)}
-                    className={cn(
-                      "chip",
-                      lifestyleTags.includes(tag) ? "chip-active" : "chip-idle"
-                    )}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                This is optional — you can always update in Settings.
+            {/* Email field */}
+            <div className="mt-6">
+              <label className="text-[13px] font-medium text-stone-800 block mb-1">
+                Your email (optional but recommended)
+              </label>
+              <p className="text-xs text-stone-400 mb-2 leading-relaxed">
+                Saves your profile so verdicts improve over time. No spam, unsubscribe anytime.
               </p>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full px-4 py-3 text-sm rounded-xl border border-stone-200 bg-stone-50 focus:bg-white focus:outline-none focus:ring-2 focus:border-transparent transition-all placeholder:text-stone-400"
+                style={{ "--tw-ring-color": "hsl(32 95% 54%)" } as React.CSSProperties}
+              />
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Navigation */}
-      <div className="max-w-xl mx-auto w-full px-6 pb-12 pt-6">
-        <div className="flex items-center gap-3">
-          {step > 0 && (
-            <Button variant="outline" onClick={() => setStep(s => s - 1)} className="gap-1.5">
-              <ArrowLeft className="w-4 h-4" /> Back
-            </Button>
-          )}
-          <Button
-            className="flex-1 gap-1.5 font-semibold"
-            style={{ background: "hsl(32 95% 54%)", color: "white" }}
-            onClick={() => step < total - 1 ? setStep(s => s + 1) : handleFinish()}
-            data-testid="onboarding-next"
-          >
-            {step < total - 1 ? (
-              <><ArrowRight className="w-4 h-4" /> Continue</>
-            ) : (
-              <><Sparkles className="w-4 h-4" /> Start deciding</>
-            )}
-          </Button>
+            {/* Submit */}
+            <button
+              onClick={handleSubmit}
+              disabled={!allAnswered}
+              className="w-full mt-6 rounded-xl text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100"
+              style={{ background: "hsl(32 95% 54%)", height: 44 }}
+            >
+              Start getting verdicts →
+            </button>
+
+            {/* Skip */}
+            <div className="mt-3 text-center">
+              <button
+                onClick={handleSkip}
+                className="text-xs text-stone-400 hover:text-stone-600 transition-colors underline underline-offset-2"
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
         </div>
-        {step === 0 && (
-          <button
-            onClick={() => setStep(total - 1)}
-            className="w-full mt-3 text-xs text-center text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Skip onboarding
-          </button>
-        )}
       </div>
     </div>
   );
