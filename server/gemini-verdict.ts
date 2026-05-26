@@ -61,6 +61,7 @@ export interface VerdictOutput {
   duplicateFlag?: string;
   resaleOutlook?: string;
   category?: string;
+  retryable?: boolean;
 }
 
 // ─── System prompt ────────────────────────────────────────────────────────────
@@ -363,9 +364,10 @@ export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutp
       verdict: "wait",
       verdictScore: 50,
       headline: "Couldn't fully read this page",
-      reasons: [{ label: "Page didn't load completely", detail: "We couldn't extract a clean price from this page. Try the canonical product URL (without filters or tracking parameters) for a real verdict." }],
+      reasons: [{ label: "Amazon blocked our page reader", detail: "This happens occasionally with certain products. Try: (1) clicking the Worthly badge again to retry, (2) making sure you are on the main product page with /dp/ in the URL, or (3) trying a different product." }],
       scores: { fit: 50, value: 50, proof: 50, regret: 50 },
       category: "other",
+      retryable: true,
     };
   }
 

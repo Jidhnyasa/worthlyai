@@ -1,4 +1,4 @@
-import { fetchVerdict, type VerdictResponse } from './api';
+import { fetchVerdict, type VerdictResponse, type ScrapedProductData } from './api';
 import { getCachedVerdict, setCachedVerdict } from './cache';
 
 // ── Verdict color tokens ───────────────────────────────────────────────────────
@@ -238,7 +238,7 @@ function renderError(body: HTMLElement, onRetry: () => void): void {
 
 // ── Public API ─────────────────────────────────────────────────────────────────
 
-export function showVerdictPanel(asin: string, url: string, container: ShadowRoot): void {
+export function showVerdictPanel(asin: string, url: string, container: ShadowRoot, scraped?: ScrapedProductData): void {
   if (container.querySelector('#worthly-panel')) return;
 
   if (!container.querySelector('#worthly-panel-style')) {
@@ -284,7 +284,7 @@ export function showVerdictPanel(asin: string, url: string, container: ShadowRoo
 
   function doFetch(): void {
     renderLoading(body);
-    fetchVerdict(url)
+    fetchVerdict(url, scraped)
       .then((data) => {
         setCachedVerdict(asin, data);
         renderSuccess(body, data);

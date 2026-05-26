@@ -296,11 +296,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // ── POST /api/verdict/url ────────────────────────────────────────────────────
   // Full URL verdict: scrapes DOM, injects user context, rate-limits anonymous users.
   app.post("/api/verdict/url", async (req, res) => {
-    const { url, userIntent: rawIntent, userProfile: rawProfile } = req.body as {
-    url?: string;
-    userIntent?: unknown;
-    userProfile?: unknown;
-  };
+    const { url, userIntent: rawIntent, userProfile: rawProfile, scraped: rawScraped } = req.body as {
+      url?: string;
+      userIntent?: unknown;
+      userProfile?: unknown;
+      scraped?: unknown;
+    };
     if (!url || typeof url !== "string") {
       return res.status(400).json({ error: "url is required" });
     }
@@ -332,8 +333,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       : undefined;
 
     try {
-      // 1. Scrape
-      const scraped = await scrapeProductFromUrl(url);
+      // 1. Scrape — skip ScrapingBee if extension sent DOM-extracted data
+      const clientScraped = (
+        rawScraped &&
+        typeof rawScraped === "object" &&
+        !Array.isArray(rawScraped) &&
+        typeof (rawScraped as any).title === "string" &&
+        (rawScraped as any).title.length > 0 &&
+        typeof (rawScraped as any).price === "number" &&
+        (rawScraped as any).price > 0
+      ) ? rawScraped as Record<string, unknown> : null;
+
+      const scraped = clientScraped
+        ? { ...clientScraped, merchant: new URL(url).hostname.replace("www.", "") }
+        : await scrapeProductFromUrl(url);
 
       // 2. Load user context if authenticated
       let userContext: Parameters<typeof getVerdictForUrl>[0]["userContext"];

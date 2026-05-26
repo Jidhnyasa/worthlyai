@@ -1,8 +1,9 @@
-import { API_BASE_URL } from './api';
+import { API_BASE_URL, type ScrapedProductData } from './api';
 
 interface FetchVerdictMessage {
   type: 'fetch-verdict';
   url: string;
+  scraped?: ScrapedProductData;
 }
 
 chrome.runtime.onMessage.addListener(
@@ -15,7 +16,10 @@ chrome.runtime.onMessage.addListener(
     fetch(`${API_BASE_URL}/api/verdict/url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: message.url }),
+      body: JSON.stringify({
+        url: message.url,
+        ...(message.scraped ? { scraped: message.scraped } : {}),
+      }),
       signal: controller.signal,
     })
       .then(async (res) => {

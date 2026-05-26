@@ -241,6 +241,22 @@ function extractSocial($: cheerio.CheerioAPI, url: string, platform: string): Sc
   return { title: title || "<could not identify>", imageUrl, description, merchant };
 }
 
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  retries = 1
+): Promise<Response> {
+  try {
+    return await fetch(url, options);
+  } catch (err) {
+    if (retries > 0) {
+      await new Promise(r => setTimeout(r, 2000));
+      return fetchWithRetry(url, options, retries - 1);
+    }
+    throw err;
+  }
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function scrapeProductFromUrl(url: string): Promise<Scraped> {
@@ -257,17 +273,17 @@ export async function scrapeProductFromUrl(url: string): Promise<Scraped> {
   }
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15_000);
+  const timer = setTimeout(() => controller.abort(), 30_000);
 
   const sbKey = process.env.SCRAPINGBEE_KEY;
   if (!sbKey) {
     throw new Error("SCRAPINGBEE_KEY env var not set");
   }
   const fetchUrl = canonicalizeUrl(url);
-  const sbUrl = `https://app.scrapingbee.com/api/v1/?api_key=${sbKey}&url=${encodeURIComponent(fetchUrl)}&render_js=true`;
+  const sbUrl = `https://app.scrapingbee.com/api/v1/?api_key=${sbKey}&url=${encodeURIComponent(fetchUrl)}&render_js=true&timeout=25000`;
 
   try {
-    const res = await fetch(sbUrl, { signal: controller.signal });
+    const res = await fetchWithRetry(sbUrl, { signal: controller.signal });
     clearTimeout(timer);
 
     const html = await res.text();

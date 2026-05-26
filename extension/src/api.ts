@@ -13,9 +13,17 @@ export interface VerdictResponse {
 
 export const API_BASE_URL = 'https://worthlyai-1.onrender.com';
 
-export async function fetchVerdict(url: string): Promise<VerdictResponse> {
+export interface ScrapedProductData {
+  title: string | null;
+  price: number | null;
+  rating: string | null;
+  reviewCount: string | null;
+  imageUrl: string | null;
+}
+
+export async function fetchVerdict(url: string, scraped?: ScrapedProductData): Promise<VerdictResponse> {
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ type: 'fetch-verdict', url }, (response) => {
+    chrome.runtime.sendMessage({ type: 'fetch-verdict', url, scraped }, (response) => {
       if (chrome.runtime.lastError) {
         reject(new Error(chrome.runtime.lastError.message));
         return;

@@ -3,6 +3,26 @@ import { showVerdictPanel } from './verdict-panel';
 
 const PRODUCT_RE = /\/dp\/([A-Z0-9]{10})/;
 
+function extractProductData() {
+  const title = document.querySelector('#productTitle')
+    ?.textContent?.trim() ?? null;
+  const priceWhole = document.querySelector('.a-price-whole')
+    ?.textContent?.trim().replace(/[^0-9]/g, '') ?? null;
+  const priceFraction = document.querySelector('.a-price-fraction')
+    ?.textContent?.trim() ?? '00';
+  const price = priceWhole
+    ? parseFloat(`${priceWhole}.${priceFraction}`)
+    : null;
+  const rating = document.querySelector(
+    '[data-hook="rating-out-of-text"], .a-icon-alt'
+  )?.textContent?.match(/[\d.]+/)?.[0] ?? null;
+  const reviewCount = document.querySelector('#acrCustomerReviewText')
+    ?.textContent?.match(/[\d,]+/)?.[0]?.replace(/,/g, '') ?? null;
+  const imageUrl = document.querySelector('#landingImage, #imgBlkFront')
+    ?.getAttribute('src') ?? null;
+  return { title, price, rating, reviewCount, imageUrl };
+}
+
 function getAsin(): string | null {
   return location.pathname.match(PRODUCT_RE)?.[1] ?? null;
 }
@@ -46,7 +66,8 @@ function injectBadge(asin: string): void {
 
   badge.addEventListener('click', () => {
     console.log('[Worthly] badge clicked, ASIN:', asin);
-    showVerdictPanel(asin, location.href, shadow);
+    const scraped = extractProductData();
+    showVerdictPanel(asin, location.href, shadow, scraped);
   });
 
   shadow.appendChild(badge);
