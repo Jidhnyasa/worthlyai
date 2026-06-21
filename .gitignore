@@ -9,3 +9,4 @@ dist/
 # Extension build artifacts
 extension/dist/
 extension/node_modules/
+extension/*.zip
