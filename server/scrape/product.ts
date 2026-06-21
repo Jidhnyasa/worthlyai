@@ -24,6 +24,15 @@ function extractJsonLdPrice($: cheerio.CheerioAPI): { price?: number; title?: st
   return {};
 }
 
+// Markers Amazon/Target/Walmart use on their bot-check / CAPTCHA interstitials.
+// Catching this early avoids burning a cheerio parse on a page that was never
+// going to have product data, and gives a precise log line instead of a
+// silent "<could not identify>" that looks like a selector bug.
+function isBotBlockPage(html: string): boolean {
+  if (html.length > 20_000) return false; // interstitials are small; real product pages aren't
+  return /(?:Enter the characters you see below|Type the characters you see in this image|api-services-support@amazon\.com|automated access to (?:Amazon|this site)|Robot or human|Pardon Our Interruption|Press (?:&|and) Hold)/i.test(html);
+}
+
 function sanityPrice(p: number | undefined): number | undefined {
   return p != null && p >= 1 && p <= 50_000 ? p : undefined;
 }
@@ -84,38 +93,22 @@ function extractAmazon($: cheerio.CheerioAPI, url: string): Scraped {
     $("h1").first().text().trim() ||
     "";
 
-  // TEMP DEBUG — remove after diagnosis
-  const priceCandidates: string[] = [];
-  $('*').each((_, el) => {
-    const text = $(el).text().slice(0, 100);
-    if (/\$\s*\d/.test(text) && text.length < 80) {
-      const tag = (el as any).tagName ?? "unknown";
-      const id = $(el).attr('id') || '';
-      const cls = ($(el).attr('class') || '').slice(0, 60);
-      priceCandidates.push(`${tag}#${id}.${cls} :: ${text.replace(/\s+/g, ' ').trim()}`);
-    }
-  });
-  console.log(`[amazon-debug] price candidates (first 20):`);
-  priceCandidates.slice(0, 20).forEach(c => console.log(`  ${c}`));
-
   // Step 1: JSON-LD
   const jsonLd = extractJsonLdPrice($);
   if (!title && jsonLd.title) title = jsonLd.title;
   let price = sanityPrice(jsonLd.price);
-  if (price != null) {
-    console.log(`[amazon] price source: jsonld value: ${price}`);
-  } else {
+  if (price == null) {
     // Step 2: buy-box scoped selectors
     const corePriceText =
       $("#corePrice_feature_div .a-price[data-a-size='xl'] .a-offscreen").first().text() ||
       $("#corePriceDisplay_desktop_feature_div .a-price .a-offscreen").first().text() ||
-      $("#apex_desktop .a-price .a-offscreen").first().text();
+      $("#apex_desktop .a-price .a-offscreen").first().text() ||
+      $("#corePrice_feature_div .a-offscreen").first().text() ||
+      $(".a-price .a-offscreen").first().text();
     price = sanityPrice(parsePrice(corePriceText));
-    if (price != null) {
-      console.log(`[amazon] price source: corePrice value: ${price}`);
-    } else {
-      console.log(`[amazon] price source: none — extraction failed`);
-    }
+  }
+  if (price == null) {
+    console.log(`[amazon] price extraction failed — title="${title.slice(0, 60)}"`);
   }
 
   const ratingText = $("#acrPopover").attr("title") || $(".a-icon-star-small .a-icon-alt").first().text();
@@ -291,6 +284,10 @@ export async function scrapeProductFromUrl(url: string): Promise<Scraped> {
 
     if (!res.ok) {
       console.warn(`[scraper] ${parsed.hostname} returned ${res.status} via ScrapingBee`);
+      return { title: "<could not identify>", merchant: parsed.hostname.replace("www.", "") };
+    }
+    if (isBotBlockPage(html)) {
+      console.warn(`[scraper] ${parsed.hostname} served a bot-check/CAPTCHA page — ScrapingBee request was blocked`);
       return { title: "<could not identify>", merchant: parsed.hostname.replace("www.", "") };
     }
     const $ = cheerio.load(html);

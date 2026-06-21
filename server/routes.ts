@@ -333,19 +333,25 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       : undefined;
 
     try {
-      // 1. Scrape — skip ScrapingBee if extension sent DOM-extracted data
-      const clientScraped = (
-        rawScraped &&
-        typeof rawScraped === "object" &&
-        !Array.isArray(rawScraped) &&
-        typeof (rawScraped as any).title === "string" &&
-        (rawScraped as any).title.length > 0 &&
-        typeof (rawScraped as any).price === "number" &&
-        (rawScraped as any).price > 0
-      ) ? rawScraped as Record<string, unknown> : null;
+      // 1. Scrape — skip ScrapingBee if extension sent DOM-extracted data.
+      // The extension's ScrapedProductData type carries rating/reviewCount as
+      // strings (parsed straight from textContent), so coerce to numbers here
+      // rather than trusting the wire shape to already match VerdictInput.
+      const raw = (rawScraped && typeof rawScraped === "object" && !Array.isArray(rawScraped))
+        ? rawScraped as Record<string, unknown>
+        : null;
+      const clientTitle = raw && typeof raw.title === "string" && raw.title.length > 0 ? raw.title : null;
+      const clientPrice = raw && typeof raw.price === "number" && raw.price > 0 ? raw.price : null;
 
-      const scraped = clientScraped
-        ? { ...clientScraped, merchant: new URL(url).hostname.replace("www.", "") }
+      const scraped = (clientTitle && clientPrice != null)
+        ? {
+            title: clientTitle,
+            price: clientPrice,
+            rating: parseFloat(String(raw!.rating)) || undefined,
+            reviewCount: parseInt(String(raw!.reviewCount).replace(/[^0-9]/g, ""), 10) || undefined,
+            imageUrl: typeof raw!.imageUrl === "string" ? raw!.imageUrl : undefined,
+            merchant: new URL(url).hostname.replace("www.", ""),
+          }
         : await scrapeProductFromUrl(url);
 
       // 2. Load user context if authenticated

@@ -360,11 +360,15 @@ export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutp
   if (!scraped.price || scraped.price < 1 || !scraped.title || scraped.title.includes("could not identify")) {
     console.warn(`[verdict] insufficient scrape data, returning early: title="${scraped.title}" price=${scraped.price}`);
     clearTimeout(timeout);
+    const site = scraped.merchant || "This site";
+    const retryTip = scraped.merchant === "Amazon"
+      ? "making sure you are on the main product page with /dp/ in the URL"
+      : "making sure you are on the main product page, not a search or category page";
     return {
       verdict: "wait",
       verdictScore: 50,
       headline: "Couldn't fully read this page",
-      reasons: [{ label: "Amazon blocked our page reader", detail: "This happens occasionally with certain products. Try: (1) clicking the Worthly badge again to retry, (2) making sure you are on the main product page with /dp/ in the URL, or (3) trying a different product." }],
+      reasons: [{ label: `${site} blocked our page reader`, detail: `This happens occasionally with certain products. Try: (1) clicking the Worthly badge again to retry, (2) ${retryTip}, or (3) trying a different product.` }],
       scores: { fit: 50, value: 50, proof: 50, regret: 50 },
       category: "other",
       retryable: true,
