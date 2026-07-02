@@ -16,6 +16,7 @@ export interface VerdictInput {
     reviewCount?: number;
     description?: string;
   };
+  redditContext?: string;    // top community threads about this product, pre-fetched
   userIntent?: {
     budget: string;
     reason: string;
@@ -24,12 +25,12 @@ export interface VerdictInput {
     priority: string;
   } | null;
   userContext?: {
-    budgetStyle?: string;         // "budget" | "balanced" | "quality" | "premium"
+    budgetStyle?: string;
     favoriteBrands?: string[];
     dislikedBrands?: string[];
     recentPurchases?: Array<{ title: string; category?: string; purchasedAt: string }>;
-    goals?: string[];             // "save_money" | "reduce_impulse" | "minimalism" | "quality_over_quantity"
-    sensitiveTo?: string[];       // "fake_sales" | "duplicate_purchases" | "overpriced_premium"
+    goals?: string[];
+    sensitiveTo?: string[];
   };
   userProfile?: {
     buying_style: string;
@@ -46,22 +47,39 @@ export interface VerdictInput {
 }
 
 export interface VerdictOutput {
+  // ── Core verdict (existing) ──────────────────────────────────────────────────
   verdict: "buy" | "wait" | "skip";
-  verdictScore: number;           // 0-100
-  headline: string;               // one line, e.g. "Solid buy — well-priced and well-reviewed"
-  reasons: Array<{ label: string; detail: string }>; // 3-5 items
-  scores: {
-    fit: number;
-    value: number;
-    proof: number;
-    regret: number;
-  };
+  verdictScore: number;                  // 0-100
+  headline: string;
+  reasons: Array<{ label: string; detail: string }>;
+  scores: { fit: number; value: number; proof: number; regret: number };
   estimatedSavings?: number;
-  waitUntil?: string;             // "until Black Friday", "until next price drop", etc.
+  waitUntil?: string;
   duplicateFlag?: string;
   resaleOutlook?: string;
   category?: string;
   retryable?: boolean;
+
+  // ── Research report (new) ────────────────────────────────────────────────────
+  confidenceScore?: number;              // 0-100
+  recommendation?: "Strong Buy" | "Buy" | "Consider" | "Wait" | "Not Recommended";
+  buyReasons?: Array<{ claim: string; frequency?: string }>;
+  hiddenConcerns?: Array<{ concern: string; severity: "low" | "medium" | "high" }>;
+  reviewReliability?: { rating: "High" | "Medium" | "Low"; explanation: string };
+  communityConsensus?: { summary: string; longTermSentiment: string; commonRegrets?: string; dataSource: string };
+  expertConsensus?: { summary: string; disagreements?: string; dataSource: string };
+  alternatives?: {
+    betterValue?: { name: string; reason: string };
+    premium?: { name: string; reason: string };
+    budget?: { name: string; reason: string };
+  };
+  priceIntelligence?: {
+    analysis: string;
+    recommendation: "Buy Now" | "Wait" | "Buy During Event";
+    reasoning: string;
+  };
+  whoShouldBuy?: string[];
+  whoShouldAvoid?: string[];
 }
 
 // ─── System prompt ────────────────────────────────────────────────────────────
@@ -69,7 +87,7 @@ export interface VerdictOutput {
 const CATEGORIES = ["electronics", "fashion", "beauty", "home", "fitness", "baby", "gifting"];
 
 function buildPrompt(input: VerdictInput): string {
-  const { scraped, userContext, userIntent, userProfile, url } = input;
+  const { scraped, userContext, userIntent, userProfile, url, redditContext } = input;
 
   const productLines = [
     `URL: ${url}`,
@@ -188,6 +206,7 @@ function buildPrompt(input: VerdictInput): string {
     emotional:  "Emotional/stress shopper",
     all:        "Mixed shopping patterns",
   };
+
   const profileLines = userProfile ? [
     `Buying style: ${BUYING_STYLE_LABELS[userProfile.buying_style] ?? userProfile.buying_style}`,
     `Regret frequency: ${REGRET_FREQ_LABELS[userProfile.regret_frequency] ?? userProfile.regret_frequency}`,
@@ -209,152 +228,232 @@ function buildPrompt(input: VerdictInput): string {
     `What matters most: ${PRIORITY_LABELS[userIntent.priority] ?? userIntent.priority}`,
   ].join("\n") : null;
 
-  return `You are Worthly — a purchase outcome agent whose only job is protecting the buyer's money. You are NOT a shopping assistant. You do not help people buy things. You help people avoid bad purchases.
+  const redditBlock = redditContext
+    ? `\nCOMMUNITY DATA (Reddit threads, pre-fetched):\n${redditContext}\n`
+    : "";
 
-PRIME DIRECTIVE: Default to skepticism. A WAIT or SKIP that saves the user $50 is worth more than a BUY that feels encouraging but is wrong. Never manufacture confidence from thin data.
+  return `You are Worthly — a consumer-first, evidence-first purchase research agent. Your only mission is protecting the buyer's money and minimizing post-purchase regret. You do NOT optimize for sales or conversion.
 
-ANCHORING DEFAULTS — these are not suggestions, they are the starting state:
-- An anonymous user (no USER CONTEXT block) means fit MUST be 50. Not 60. Not 65. Exactly 50, regardless of how appealing the product seems. You cannot know fit without knowing the user.
-- Without USER CONTEXT, the verdict floor is WAIT, not BUY. To override to BUY for an anonymous user, you must explicitly justify in a reason WHY this product is universally well-suited (rare — only true for true commodity goods at obviously fair prices).
-- If you find yourself wanting to recommend BUY, ask: "What could go wrong for this buyer?" Write that down as a reason BEFORE the BUY reasons. If you can't find anything that could go wrong, your analysis is incomplete.
+PRIME DIRECTIVE: Default to skepticism. A WAIT or SKIP that saves the user $50 is worth more than a BUY that feels encouraging but is wrong. Never manufacture confidence from thin data. Surface tradeoffs honestly — if a product has no visible downsides in your analysis, that is a signal your analysis is incomplete, not that the product is perfect.
 
-SCORING RUBRIC — score these independently before choosing a verdict:
+HALLUCINATION RULES (strictly enforced):
+- Never invent specific Reddit usernames, thread titles, or post dates.
+- Never cite specific expert review scores (e.g. "Wirecutter gave it 9/10") unless they appear in the product data or community data provided below.
+- For communityConsensus and expertConsensus: draw from your training knowledge about this specific product/brand/category. If your training knowledge is limited or the product is too recent, explicitly say "Limited training data for this specific product — assessment based on product category signals."
+- For alternatives: name real, well-known products in the category. If unsure of specific model names, name the brand + category (e.g. "Anker USB-C chargers") rather than inventing a model number.
+- For priceIntelligence: only cite actual price history if the COMMUNITY DATA block below contains it. Otherwise reason from category patterns (seasonal discounts, common deal cycles) and label it clearly as "category pattern, not product-specific history."
+- All claims that are not derivable from the product data provided must be labelled with their source: "(training knowledge)", "(community data)", or "(category pattern)."
 
-fit (0-100): How well does the product match THIS specific user's stated needs?
-  - No user context provided → fit = 50, hard rule, no exceptions.
-  - Do not infer "high fit" from a product being generally good. Fit is about the buyer, not the product.
+─── SCORING RUBRIC ─────────────────────────────────────────────────────────────
+
+fit (0-100): Match to THIS specific user's stated needs.
+  - No user context → fit = 50, hard rule, no exceptions.
   - Clear match to stated goal → 75-90
-  - Contradicts stated goal (e.g. user wants "save money", product is premium) → 20-40
+  - Contradicts stated goal → 20-40
 
-value (0-100): Is the price justified given quality signals AND the buyer's likely alternatives?
-  - NO PRICE PROVIDED → cap value at 52 (cannot assess)
-  - Price seems competitive, well-reviewed, no obvious cheaper substitute → 65-80
-  - Price seems competitive but a well-known cheaper alternative exists (name it) → 50-65
-  - Price provided, few reviews, unproven quality → 45-60
-  - Price seems inflated vs. category average → 30-50
-  - Brand premium without clear product premium → 35-50
+value (0-100): Is the price justified?
+  - NO PRICE → cap at 52.
+  - Competitive, well-reviewed, no obvious substitute → 65-80
+  - Competitive but cheaper alternative exists → 50-65
+  - Few reviews, unproven quality → 45-60
+  - Price seems inflated → 30-50
 
-proof (0-100): How much evidence backs the quality claim?
+proof (0-100): Evidence base quality.
   - No rating AND no reviews → 15-25
-  - Rating only, no review count → 30-45
+  - Rating only, no count → 30-45
   - <50 reviews → 35-50
   - 50-500 reviews, rating ≥4.0 → 55-70
   - 500+ reviews, rating ≥4.2 → 75-90
 
-regret (0-100): How likely is the buyer to regret this purchase?
-  Start at 35 (slight default skepticism). Then adjust:
-  - Impulse/trending/TikTok-viral item → add 25
-  - No price transparency → add 15
-  - Anonymous user (no context) buying discretionary item → add 15
-  - Similar to recent purchase → add 30
-  - Approaching obvious refresh cycle (Apple Sept, Samsung Feb, fashion end-of-season) → add 25
-  - Brand premium suspected (designer logo on basic item) → add 20
-  - Genuine essential, well-reviewed, fair price → subtract 15
+regret (0-100): Likelihood of post-purchase regret. Start at 35.
+  - Impulse/trending → +25
+  - No price transparency → +15
+  - Anonymous user, discretionary item → +15
+  - Similar to recent purchase → +30
+  - Approaching obvious refresh cycle → +25
+  - Brand premium suspected → +20
+  - Essential, well-reviewed, fair price → -15
   - Cap at 95.
 
-INTENT MODIFIERS — apply after base scoring:
-  - reason = "impulse"       → add 20 to regret (impulse buys regret easily)
-  - reason = "replacing"     → subtract 10 from regret (genuine need, clear purpose)
-  - reason = "considered"    → subtract 5 from regret (deliberate, not rushed)
-  - owns_similar = "yes_works" → add 30 to regret (already has one that works)
-  - owns_similar = "yes_works" → cap fit at 50 (hard to justify buying again)
-  - owns_similar = "yes_broken" → subtract 10 from regret (legitimate replacement)
-  - need_level = "want_not_need" → add 15 to regret
-  - need_level = "not_sure"      → add 10 to regret, verdict floors at WAIT
-  - need_level = "need_now"      → subtract 15 from regret
-  - priority = "no_regret"       → add 10 to regret (they regret easily — be careful)
-  - priority = "value"           → if product price seems above category average,
-                                    cap value score at 60
-  - priority = "quality"         → relax value scoring — user accepts paying more
-  - budget = "under_25"    → if price > $30,  cap value at 40 (over budget)
-  - budget = "from_25_75"  → if price > $80,  cap value at 45 (over budget)
-  - budget = "from_75_150" → if price > $160, cap value at 45 (over budget)
-  - budget = "from_150_300"→ if price > $320, cap value at 45 (over budget)
-  - budget = "over_300"    → no budget cap — user comfortable spending
+INTENT MODIFIERS:
+  - reason = "impulse"         → +20 regret
+  - reason = "replacing"       → -10 regret
+  - reason = "considered"      → -5 regret
+  - owns_similar = "yes_works" → +30 regret, cap fit at 50
+  - owns_similar = "yes_broken"→ -10 regret
+  - need_level = "want_not_need"→ +15 regret
+  - need_level = "not_sure"    → +10 regret, floor verdict at WAIT
+  - need_level = "need_now"    → -15 regret
+  - priority = "no_regret"     → +10 regret
+  - priority = "value"         → if above avg price, cap value at 60
+  - priority = "quality"       → relax value scoring
+  - Budget overruns: cap value at 40-45 if price exceeds budget bracket.
 
-PROFILE MODIFIERS — apply if USER PROFILE is present:
-  - buying_style = "impulse" → add 25 to regret, require extra scrutiny before BUY
-  - buying_style = "researcher" → subtract 10 from regret, user makes deliberate choices
-  - regret_frequency = "often" or "very_often" → add 15 to regret baseline, floor verdict at WAIT unless proof ≥ 70 AND value ≥ 65
-  - overspend_trigger = "fomo" → add 20 to regret on trending or viral products
-  - overspend_trigger = "sale" → explicitly call out if discount seems manufactured or price history is unknown
-  - overspend_trigger = "emotional" → add 15 to regret, add reason flagging emotional purchase risk
-  - budget_discipline = "untracked" → treat all purchases as potentially over-budget, value cap 60
-  - duplicate_tendency = "duplicator" → add 35 to regret, cap fit at 40, require very strong justification for BUY
-  - influence_source = "social" → add 20 to regret on trending items, flag if product appears driven by social media popularity
-  - influence_source = "deals" → explicitly evaluate whether the price is genuinely good or manufactured urgency
-  - return_attitude = "avoidant" or "never" → increase conservatism significantly — this user cannot easily undo a bad purchase. Add 15 to regret and require proof ≥ 65 for BUY
-  - quality_orientation = "cheapest" → flag if product shows quality warning signals in reviews
-  - quality_orientation = "quality_first" → relax value scoring, focus on proof and durability signals
-  - shopping_timing = "late_night" → add 15 to regret (research-backed: late night impulse purchases have higher regret rates)
-  - shopping_timing = "emotional" → add 20 to regret, explicitly mention this in a reason if firing SKIP
-  - household = "young_kids" → prioritize safety, durability, and practicality signals in baby/home categories
-  - household = "solo" → no household budget splitting, full purchase cost falls on one person
+PROFILE MODIFIERS (if USER PROFILE present):
+  - buying_style = "impulse"   → +25 regret, extra scrutiny before BUY
+  - buying_style = "researcher"→ -10 regret
+  - regret_frequency = "often"/"very_often" → +15 regret base, floor at WAIT unless proof ≥ 70 AND value ≥ 65
+  - overspend_trigger = "fomo" → +20 regret on trending items
+  - overspend_trigger = "sale" → call out manufactured discounts explicitly
+  - duplicate_tendency = "duplicator" → +35 regret, cap fit at 40
+  - return_attitude = "avoidant"/"never" → +15 regret, require proof ≥ 65 for BUY
+  - shopping_timing = "late_night" → +15 regret
+  - shopping_timing = "emotional" → +20 regret
 
-VERDICT LOGIC (apply in order — first match wins):
+VERDICT LOGIC (check in order — first match wins):
 1. SKIP if: value<55 OR regret≥55 OR (proof<40 AND verdictScore<55)
 2. WAIT if: fit<72 OR proof<55 OR (regret≥40 AND value<70)
 3. BUY only if: fit≥72 AND value≥68 AND proof≥55 AND regret≤35
 
-The order matters: check SKIP first, then WAIT, then BUY. Most products should be WAIT. BUY should be the rare verdict, not the default.
+Most products should be WAIT. BUY is the rare verdict.
+SPARSE DATA RULE: Missing price AND (missing rating OR missing reviews) → verdict must be WAIT.
 
-SPARSE DATA RULE: If price is missing AND (rating is missing OR reviewCount is missing), verdict must be WAIT. Do not issue BUY on products you cannot verify.
+CATEGORY: Classify into one of: ${CATEGORIES.join(", ")}, or "other".
 
-CATEGORY DETECTION: Classify into one of: ${CATEGORIES.join(", ")}. Use "other" if none fit.
+REASON QUALITY — every reason must cite at least one of:
+- A specific number (price, rating, review count)
+- A named competitor or category alternative
+- A specific risk (refresh cycle, fragility, low resale, brand premium)
+- A specific data gap and its implication
+Banned patterns: "trusted brand," "high quality," "great value," "strong proof" without numbers.
 
-DUPLICATE CHECK: If the user's recent purchases include something very similar, set duplicateFlag with a warning and add 25 to regret score.
+DUPLICATE CHECK: Flag if recent purchases include something very similar. Add 25 to regret.
 
-REASON QUALITY — every reason must do at least one of:
-- Cite a specific number from the data (price, review count, rating)
-- Name a specific competitor product or category alternative
-- Identify a specific risk (refresh cycle, fragility, low resale, brand premium, gimmick category)
-- Flag a specific data gap and what it means
+RECOMMENDATION MAPPING (based on verdictScore):
+- Strong Buy: verdictScore ≥ 82
+- Buy: verdictScore 68-81
+- Consider: verdictScore 55-67
+- Wait: verdictScore 40-54
+- Not Recommended: verdictScore < 40
 
-Banned reason patterns: "trusted brand," "high quality," "great value," "strong proof" without numbers, "addresses key concerns," "good investment." These are filler. If a reason fits this pattern, rewrite it with specifics or remove it.
+REVIEW RELIABILITY — assess the product's review ecosystem:
+- High: consistent reviews, no sudden spikes, verified purchases dominate, rating distribution is natural
+- Medium: some inconsistency, possible incentivized reviews, moderate confidence
+- Low: suspicious review clusters, extreme rating bimodality, recent score inflation, very few reviews
 
-If you cannot generate 3 reasons that meet the quality bar, generate 2 honest reasons and say so — better fewer real reasons than padding.
+COMMUNITY CONSENSUS — synthesize what real long-term users say:
+- Use the COMMUNITY DATA block below if provided.
+- Otherwise use training knowledge, labelled as "(training knowledge)."
+- Focus on: long-term durability reports, what buyers regret, who the product is and isn't for.
 
-OUTPUT — strict JSON, no markdown:
+EXPERT CONSENSUS — draw from your training knowledge about this product:
+- Cite publication names if you have genuine confidence (e.g. "Wirecutter" or "RTINGS" for specific product categories).
+- If you have no specific expert knowledge about this product, say so and reason from category patterns.
+- Note disagreements between sources if they exist.
+
+ALTERNATIVES — name real products:
+- Better Value: a cheaper product that covers most of the same needs
+- Premium: a better product worth the extra cost
+- Budget: a lower-cost option for minimal requirements
+If you cannot name a specific model with confidence, name the brand + category description.
+
+PRICE INTELLIGENCE:
+- If COMMUNITY DATA contains price history, use it and cite it.
+- Otherwise, reason from category-level patterns (e.g. "Electronics typically see 15-20% drops in November") and label as "(category pattern)."
+- Specific recommendations: Buy Now / Wait / Buy During Event.
+
+WHO SHOULD BUY / AVOID: 3-5 specific buyer profiles each. Be concrete, not generic ("value-conscious buyers who need X" not just "people who want a good deal").
+
+FINAL CHECKS before responding:
+- If userIntent provided: verdict must reference at least one stated preference.
+- If owns_similar = "yes_works": name a specific reason why buying again makes sense.
+- If reasons are all positive: find at least one tradeoff — real products always have them.
+- If you said BUY: explicitly state what could go wrong for this buyer.
+- Consumer trust > conversion. When in doubt, WAIT.
+
+─── DATA ────────────────────────────────────────────────────────────────────────
+
+PRODUCT:
+${productLines}
+${redditBlock}
+${profileLines ? `USER PROFILE:\n${profileLines}\n` : ""}${intentLines ? `USER INTENT:\n${intentLines}\n` : ""}${userLines ? `USER CONTEXT:\n${userLines}\n` : ""}
+─── OUTPUT ──────────────────────────────────────────────────────────────────────
+
+Return strict JSON only (no markdown). Required fields exactly as specified:
+
 {
   "verdict": "buy" | "wait" | "skip",
   "verdictScore": 0-100,
-  "headline": "one line under 10 words — be direct about the verdict and the main reason",
-  "category": "one of the categories above",
+  "recommendation": "Strong Buy" | "Buy" | "Consider" | "Wait" | "Not Recommended",
+  "confidenceScore": 0-100,
+  "headline": "one line, under 10 words, direct about verdict and main reason",
+  "category": "one of the categories listed above",
   "reasons": [
-    { "label": "≤4 words", "detail": "1-2 sentences. Cite the actual price, rating, review count, or missing data. No vague language." },
-    { "label": "...", "detail": "..." },
-    { "label": "...", "detail": "..." }
+    { "label": "≤4 words", "detail": "1-2 sentences with specifics — price, rating, review count, or named risk" }
   ],
   "scores": { "fit": 0-100, "value": 0-100, "proof": 0-100, "regret": 0-100 },
-  "estimatedSavings": number or null,
-  "waitUntil": "timing hint or null",
-  "duplicateFlag": "warning string or null",
-  "resaleOutlook": "brief resale note or null"
+  "estimatedSavings": number | null,
+  "waitUntil": "timing hint" | null,
+  "duplicateFlag": "warning string" | null,
+  "resaleOutlook": "brief resale note" | null,
+  "buyReasons": [
+    { "claim": "positive theme", "frequency": "e.g. mentioned in ~60% of reviews or 'common theme'" }
+  ],
+  "hiddenConcerns": [
+    { "concern": "issue users discover post-purchase", "severity": "low" | "medium" | "high" }
+  ],
+  "reviewReliability": {
+    "rating": "High" | "Medium" | "Low",
+    "explanation": "reason for the rating"
+  },
+  "communityConsensus": {
+    "summary": "overall community sentiment",
+    "longTermSentiment": "what owners say after 6-12 months",
+    "commonRegrets": "most cited post-purchase regret or null",
+    "dataSource": "community data provided" | "training knowledge" | "limited data available"
+  },
+  "expertConsensus": {
+    "summary": "expert verdict on this product",
+    "disagreements": "notable expert disagreements or null",
+    "dataSource": "publication names if confident, else 'category pattern'"
+  },
+  "alternatives": {
+    "betterValue": { "name": "product name or brand+category", "reason": "why it beats this on value" },
+    "premium": { "name": "product name or brand+category", "reason": "why it's worth the premium" },
+    "budget": { "name": "product name or brand+category", "reason": "what you give up at lower price" }
+  },
+  "priceIntelligence": {
+    "analysis": "current price assessment relative to history and category norms",
+    "recommendation": "Buy Now" | "Wait" | "Buy During Event",
+    "reasoning": "why — cite source: community data, category pattern, or product-specific"
+  },
+  "whoShouldBuy": ["specific buyer profile 1", "specific buyer profile 2", "..."],
+  "whoShouldAvoid": ["specific avoidance profile 1", "specific avoidance profile 2", "..."]
 }
 
-Always return 3-5 reasons. If data is missing, explicitly flag it in a reason (e.g. "No price listed — value cannot be assessed"). Never say "I cannot determine" — state what's missing and what that means for the verdict.
+Always return 3-5 reasons. Always populate all sections. Use "Limited data available" as value for text fields when genuinely uncertain rather than inventing specifics.`;
+}
 
-FINAL CHECK before you respond:
-- If userIntent was provided, your verdict must explicitly reference at least one of the user's stated preferences (budget, reason, need level, or priority). Generic verdicts that ignore the user context are not acceptable.
-- If owns_similar = "yes_works", the burden of proof for BUY is very high — the verdict must name a specific reason why buying again makes sense despite already owning a working version.
-- If need_level = "not_sure", do not issue a confident BUY. The user has not decided they need this — default to WAIT and help them think it through.
-- Read your verdict. Is it the kind of verdict a friend who knows shopping would say? Or is it polite restating of the product page?
-- If you said BUY: what specifically could go wrong for this buyer? Did you flag it?
-- If your reasons are all positive, that's a yellow flag — most products have real tradeoffs. Find at least one.
+// ─── Reddit enrichment ────────────────────────────────────────────────────────
 
----
-PRODUCT:
-${productLines}
-
-${profileLines ? `USER PROFILE:\n${profileLines}\n\n` : ""}${intentLines ? `USER INTENT:\n${intentLines}\n\n` : ""}${userLines ? `USER CONTEXT:\n${userLines}\n` : ""}
-Output JSON verdict now.`;
+export async function fetchRedditContext(productTitle: string): Promise<string | null> {
+  try {
+    // Use only first ~5 words of title to avoid overly specific searches
+    const query = productTitle.split(/\s+/).slice(0, 5).join(" ") + " review";
+    const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=top&t=year&limit=5&type=link`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "WorthlyAI/1.0 (purchase research tool)" },
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as any;
+    const posts: Array<{ title: string; score: number; url: string; selftext?: string }> =
+      (data?.data?.children ?? []).map((c: any) => c.data).filter(Boolean);
+    if (!posts.length) return null;
+    return posts
+      .slice(0, 5)
+      .map(p => `- "${p.title}" (${p.score} upvotes)${p.selftext ? ": " + p.selftext.slice(0, 200) : ""}`)
+      .join("\n");
+  } catch {
+    return null;
+  }
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutput> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  const timeout = setTimeout(() => controller.abort(), 15_000);
 
   const { scraped } = input;
   if (!scraped.price || scraped.price < 1 || !scraped.title || scraped.title.includes("could not identify")) {
@@ -367,6 +466,8 @@ export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutp
     return {
       verdict: "wait",
       verdictScore: 50,
+      recommendation: "Wait",
+      confidenceScore: 0,
       headline: "Couldn't fully read this page",
       reasons: [{ label: `${site} blocked our page reader`, detail: `This happens occasionally with certain products. Try: (1) clicking the Worthly badge again to retry, (2) ${retryTip}, or (3) trying a different product.` }],
       scores: { fit: 50, value: 50, proof: 50, regret: 50 },
@@ -378,19 +479,18 @@ export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutp
   const verdictSchema = {
     type: SchemaType.OBJECT,
     properties: {
-      verdict: {
-        type: SchemaType.STRING,
-        enum: ["buy", "wait", "skip"],
-      },
-      verdictScore: { type: SchemaType.NUMBER },
-      headline: { type: SchemaType.STRING },
-      category: { type: SchemaType.STRING },
+      verdict:          { type: SchemaType.STRING, enum: ["buy", "wait", "skip"] },
+      verdictScore:     { type: SchemaType.NUMBER },
+      recommendation:   { type: SchemaType.STRING, enum: ["Strong Buy", "Buy", "Consider", "Wait", "Not Recommended"] },
+      confidenceScore:  { type: SchemaType.NUMBER },
+      headline:         { type: SchemaType.STRING },
+      category:         { type: SchemaType.STRING },
       reasons: {
         type: SchemaType.ARRAY,
         items: {
           type: SchemaType.OBJECT,
           properties: {
-            label: { type: SchemaType.STRING },
+            label:  { type: SchemaType.STRING },
             detail: { type: SchemaType.STRING },
           },
           required: ["label", "detail"],
@@ -399,15 +499,108 @@ export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutp
       scores: {
         type: SchemaType.OBJECT,
         properties: {
-          fit: { type: SchemaType.NUMBER },
-          value: { type: SchemaType.NUMBER },
-          proof: { type: SchemaType.NUMBER },
+          fit:    { type: SchemaType.NUMBER },
+          value:  { type: SchemaType.NUMBER },
+          proof:  { type: SchemaType.NUMBER },
           regret: { type: SchemaType.NUMBER },
         },
         required: ["fit", "value", "proof", "regret"],
       },
+      estimatedSavings: { type: SchemaType.NUMBER },
+      waitUntil:        { type: SchemaType.STRING },
+      duplicateFlag:    { type: SchemaType.STRING },
+      resaleOutlook:    { type: SchemaType.STRING },
+      buyReasons: {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            claim:     { type: SchemaType.STRING },
+            frequency: { type: SchemaType.STRING },
+          },
+          required: ["claim"],
+        },
+      },
+      hiddenConcerns: {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            concern:  { type: SchemaType.STRING },
+            severity: { type: SchemaType.STRING, enum: ["low", "medium", "high"] },
+          },
+          required: ["concern", "severity"],
+        },
+      },
+      reviewReliability: {
+        type: SchemaType.OBJECT,
+        properties: {
+          rating:      { type: SchemaType.STRING, enum: ["High", "Medium", "Low"] },
+          explanation: { type: SchemaType.STRING },
+        },
+        required: ["rating", "explanation"],
+      },
+      communityConsensus: {
+        type: SchemaType.OBJECT,
+        properties: {
+          summary:            { type: SchemaType.STRING },
+          longTermSentiment:  { type: SchemaType.STRING },
+          commonRegrets:      { type: SchemaType.STRING },
+          dataSource:         { type: SchemaType.STRING },
+        },
+        required: ["summary", "longTermSentiment", "dataSource"],
+      },
+      expertConsensus: {
+        type: SchemaType.OBJECT,
+        properties: {
+          summary:       { type: SchemaType.STRING },
+          disagreements: { type: SchemaType.STRING },
+          dataSource:    { type: SchemaType.STRING },
+        },
+        required: ["summary", "dataSource"],
+      },
+      alternatives: {
+        type: SchemaType.OBJECT,
+        properties: {
+          betterValue: {
+            type: SchemaType.OBJECT,
+            properties: {
+              name:   { type: SchemaType.STRING },
+              reason: { type: SchemaType.STRING },
+            },
+            required: ["name", "reason"],
+          },
+          premium: {
+            type: SchemaType.OBJECT,
+            properties: {
+              name:   { type: SchemaType.STRING },
+              reason: { type: SchemaType.STRING },
+            },
+            required: ["name", "reason"],
+          },
+          budget: {
+            type: SchemaType.OBJECT,
+            properties: {
+              name:   { type: SchemaType.STRING },
+              reason: { type: SchemaType.STRING },
+            },
+            required: ["name", "reason"],
+          },
+        },
+      },
+      priceIntelligence: {
+        type: SchemaType.OBJECT,
+        properties: {
+          analysis:       { type: SchemaType.STRING },
+          recommendation: { type: SchemaType.STRING, enum: ["Buy Now", "Wait", "Buy During Event"] },
+          reasoning:      { type: SchemaType.STRING },
+        },
+        required: ["analysis", "recommendation", "reasoning"],
+      },
+      whoShouldBuy:   { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+      whoShouldAvoid: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
     },
-    required: ["verdict", "verdictScore", "headline", "category", "reasons", "scores"],
+    required: ["verdict", "verdictScore", "recommendation", "confidenceScore", "headline", "category", "reasons", "scores"],
   };
 
   try {
@@ -426,13 +619,13 @@ export async function getVerdictForUrl(input: VerdictInput): Promise<VerdictOutp
         responseMimeType: "application/json",
         responseSchema: verdictSchema as Schema,
         temperature: 0.4,
-        maxOutputTokens: 4096,
+        maxOutputTokens: 8192,
       },
     });
 
     clearTimeout(timeout);
-    const verdict = JSON.parse(result.response.text()) as Partial<VerdictOutput>;
-    return normalize(verdict, input);
+    const raw = JSON.parse(result.response.text()) as Partial<VerdictOutput>;
+    return normalize(raw, input);
   } catch (err) {
     clearTimeout(timeout);
     console.error("Gemini verdict error:", err);
@@ -448,9 +641,20 @@ function normalize(raw: Partial<VerdictOutput>, input: VerdictInput): VerdictOut
     ? raw.reasons.slice(0, 5).map(r => ({ label: r.label ?? "Signal", detail: r.detail ?? "" }))
     : [{ label: "Limited data", detail: "Not enough product info to give a full verdict." }];
 
+  const verdictScore = clamp(raw.verdictScore ?? 55);
+  const recommendation = (["Strong Buy", "Buy", "Consider", "Wait", "Not Recommended"].includes(raw.recommendation ?? "")
+    ? raw.recommendation
+    : verdictScore >= 82 ? "Strong Buy"
+    : verdictScore >= 68 ? "Buy"
+    : verdictScore >= 55 ? "Consider"
+    : verdictScore >= 40 ? "Wait"
+    : "Not Recommended") as VerdictOutput["recommendation"];
+
   return {
     verdict,
-    verdictScore: clamp(raw.verdictScore ?? 55),
+    verdictScore,
+    recommendation,
+    confidenceScore: clamp(raw.confidenceScore ?? 50),
     headline: raw.headline ?? (verdict === "buy" ? "Looks like a solid buy" : verdict === "skip" ? "Not worth it right now" : "Hold off for now"),
     reasons,
     scores: {
@@ -460,10 +664,19 @@ function normalize(raw: Partial<VerdictOutput>, input: VerdictInput): VerdictOut
       regret: clamp(raw.scores?.regret ?? 40),
     },
     estimatedSavings: raw.estimatedSavings ?? undefined,
-    waitUntil: raw.waitUntil ?? undefined,
-    duplicateFlag: raw.duplicateFlag ?? undefined,
-    resaleOutlook: raw.resaleOutlook ?? undefined,
+    waitUntil:        raw.waitUntil ?? undefined,
+    duplicateFlag:    raw.duplicateFlag ?? undefined,
+    resaleOutlook:    raw.resaleOutlook ?? undefined,
     category: CATEGORIES.includes(raw.category ?? "") ? raw.category : "other",
+    buyReasons:        raw.buyReasons ?? [],
+    hiddenConcerns:    raw.hiddenConcerns ?? [],
+    reviewReliability: raw.reviewReliability,
+    communityConsensus: raw.communityConsensus,
+    expertConsensus:   raw.expertConsensus,
+    alternatives:      raw.alternatives,
+    priceIntelligence: raw.priceIntelligence,
+    whoShouldBuy:      raw.whoShouldBuy ?? [],
+    whoShouldAvoid:    raw.whoShouldAvoid ?? [],
   };
 }
 
@@ -471,6 +684,8 @@ function waitFallback(input: VerdictInput): VerdictOutput {
   return {
     verdict: "wait",
     verdictScore: 50,
+    recommendation: "Wait",
+    confidenceScore: 0,
     headline: "Need more info — verdict pending",
     reasons: [
       { label: "Analysis failed", detail: "We couldn't fully analyze this product. The page may have blocked our scraper." },

@@ -9,6 +9,27 @@ export interface VerdictResponse {
   waitUntil?: string | null;
   duplicateFlag?: string | null;
   resaleOutlook?: string | null;
+
+  // Research report sections
+  confidenceScore?: number;
+  recommendation?: 'Strong Buy' | 'Buy' | 'Consider' | 'Wait' | 'Not Recommended';
+  buyReasons?: Array<{ claim: string; frequency?: string }>;
+  hiddenConcerns?: Array<{ concern: string; severity: 'low' | 'medium' | 'high' }>;
+  reviewReliability?: { rating: 'High' | 'Medium' | 'Low'; explanation: string };
+  communityConsensus?: { summary: string; longTermSentiment: string; commonRegrets?: string; dataSource: string };
+  expertConsensus?: { summary: string; disagreements?: string; dataSource: string };
+  alternatives?: {
+    betterValue?: { name: string; reason: string };
+    premium?: { name: string; reason: string };
+    budget?: { name: string; reason: string };
+  };
+  priceIntelligence?: {
+    analysis: string;
+    recommendation: 'Buy Now' | 'Wait' | 'Buy During Event';
+    reasoning: string;
+  };
+  whoShouldBuy?: string[];
+  whoShouldAvoid?: string[];
 }
 
 export const API_BASE_URL = 'https://worthlyai-1.onrender.com';

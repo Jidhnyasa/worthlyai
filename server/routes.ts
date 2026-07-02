@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { getRecommendation } from "./gemini";
 import { scrapeProductMeta, getUrlVerdict } from "./analyze-url";
 import { scrapeProductFromUrl } from "./scrape/product.js";
-import { getVerdictForUrl } from "./gemini-verdict.js";
+import { getVerdictForUrl, fetchRedditContext } from "./gemini-verdict.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { QueryPayload } from "@shared/schema";
 
@@ -343,16 +343,30 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const clientTitle = raw && typeof raw.title === "string" && raw.title.length > 0 ? raw.title : null;
       const clientPrice = raw && typeof raw.price === "number" && raw.price > 0 ? raw.price : null;
 
-      const scraped = (clientTitle && clientPrice != null)
-        ? {
+      // Run product scrape + Reddit enrichment in parallel to keep latency tight.
+      const scrapePromise = (clientTitle && clientPrice != null)
+        ? Promise.resolve({
             title: clientTitle,
             price: clientPrice,
             rating: parseFloat(String(raw!.rating)) || undefined,
             reviewCount: parseInt(String(raw!.reviewCount).replace(/[^0-9]/g, ""), 10) || undefined,
             imageUrl: typeof raw!.imageUrl === "string" ? raw!.imageUrl : undefined,
             merchant: new URL(url).hostname.replace("www.", ""),
-          }
-        : await scrapeProductFromUrl(url);
+          })
+        : scrapeProductFromUrl(url);
+
+      const redditPromise = clientTitle
+        ? fetchRedditContext(clientTitle)
+        : Promise.resolve(null);
+
+      const [scraped, redditEarly] = await Promise.all([scrapePromise, redditPromise]);
+      // For server-side scrape paths clientTitle was unknown, so fire Reddit now
+      // that we have a real title. Capped at 5s via AbortSignal.timeout in helper.
+      const redditContext = redditEarly
+        ?? (scraped.title && !scraped.title.includes("could not identify")
+          ? await fetchRedditContext(scraped.title)
+          : null);
+      if (redditContext) console.log(`[reddit] ${redditContext.split("\n").length} threads for "${scraped.title?.slice(0, 40)}"`);
 
       // 2. Load user context if authenticated
       let userContext: Parameters<typeof getVerdictForUrl>[0]["userContext"];
@@ -371,7 +385,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       // 3. Verdict
-      const verdict = await getVerdictForUrl({ url, scraped, userContext, userIntent: userIntent ?? undefined, userProfile });
+      const verdict = await getVerdictForUrl({ url, scraped, redditContext: redditContext ?? undefined, userContext, userIntent: userIntent ?? undefined, userProfile });
 
       // 4. Persist (best-effort)
       let queryId: string | undefined;
